@@ -1,0 +1,96 @@
+# Builds and tests every security mode in JVM and native mode.
+# Each mode has different JARs on the classpath (see CLAUDE.md), so each one is its own job.
+name: Build
+
+on:
+  push:
+    branches: [ "main" ]
+    paths-ignore: [ "**.md", "docs/**" ]
+  pull_request:
+    branches: [ "main" ]
+    paths-ignore: [ "**.md", "docs/**" ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  jvm:
+    name: JVM - ${{ matrix.mode }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+        mode: [ unsecured, basic, oidc ]
+        include:
+          - { mode: unsecured, profile: "" }
+          - { mode: basic, profile: "-Pbasic" }
+          - { mode: oidc, profile: "-Poidc" }
+          # Windows runners have no Linux containers, so no Keycloak Dev Services there (oidc is Linux only)
+          - { os: windows-latest, mode: unsecured, profile: "" }
+          - { os: windows-latest, mode: basic, profile: "-Pbasic" }
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build and test (${{ matrix.mode }})
+        run: mvn -B clean verify ${{ matrix.profile }}
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jvm-${{ matrix.mode }}-${{ matrix.os }}-reports
+          path: |
+            target/surefire-reports
+            target/quarkus.log
+
+  native:
+    name: Native - ${{ matrix.mode }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { mode: unsecured, profile: "" }
+          - { mode: basic, profile: "-Pbasic" }
+          - { mode: oidc, profile: "-Poidc" }
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@v1
+        with:
+          distribution: graalvm
+          java-version: '25'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: maven
+
+      # Builds the native executable and runs the *IT (@QuarkusIntegrationTest) classes against it.
+      # The JVM tests were already run by the jvm job.
+      - name: Build native and run integration tests (${{ matrix.mode }})
+        run: mvn -B clean verify ${{ matrix.profile }} -Dnative -Dnative.surefire.skip
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.mode }}-reports
+          path: |
+            target/failsafe-reports
+            target/quarkus.log

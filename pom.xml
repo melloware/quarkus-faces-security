@@ -21,6 +21,12 @@
         <build-helper.version>3.6.1</build-helper.version>
         <!-- JUnit 5 tag(s) to run; each security profile switches this to its own tag -->
         <test.groups>unsecured</test.groups>
+        <!-- @QuarkusIntegrationTest (*IT) classes only run in native mode: mvn verify -Dnative -->
+        <skipITs>true</skipITs>
+        <!-- -Dnative.surefire.skip : skip the JVM (@QuarkusTest) tests in a native build, as Quarkus extensions do -->
+        <native.surefire.skip>false</native.surefire.skip>
+        <!-- Config profile for a native build (the security profiles switch it to basic / oidc) -->
+        <app.profile>prod</app.profile>
         <playwright-quarkus.version>2.4.0</playwright-quarkus.version>
     </properties>
 
@@ -111,8 +117,31 @@
                 <configuration>
                     <!-- Only run the tests for the active mode: unsecured | basic | oidc -->
                     <groups>${test.groups}</groups>
+                    <skipTests>${native.surefire.skip}</skipTests>
                     <systemPropertyVariables>
                         <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <!-- Runs the *IT classes against the packaged app (the native executable with -Dnative) -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${surefire.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <groups>${test.groups}</groups>
+                    <systemPropertyVariables>
+                        <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
+                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                        <maven.home>${maven.home}</maven.home>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
@@ -127,6 +156,7 @@
             <properties>
                 <quarkus.profile>dev,basic</quarkus.profile>
                 <test.groups>basic</test.groups>
+                <app.profile>basic</app.profile>
             </properties>
             <dependencies>
                 <dependency>
@@ -145,6 +175,7 @@
             <properties>
                 <quarkus.profile>dev,oidc</quarkus.profile>
                 <test.groups>oidc</test.groups>
+                <app.profile>oidc</app.profile>
             </properties>
             <dependencies>
                 <dependency>
@@ -181,8 +212,41 @@
                             </execution>
                         </executions>
                     </plugin>
+                    <plugin>
+                        <!-- @QuarkusIntegrationTest starts Keycloak Dev Services from the test JVM, which
+                             does not read application-oidc.properties. Without these it imports the default
+                             "quarkus" realm instead of ours. Keep in sync with application-oidc.properties. -->
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <quarkus.keycloak.devservices.realm-path>quarkus-faces-realm.json</quarkus.keycloak.devservices.realm-path>
+                                <quarkus.keycloak.devservices.realm-name>quarkus-faces</quarkus.keycloak.devservices.realm-name>
+                                <quarkus.oidc.client-id>quarkus-faces</quarkus.oidc.client-id>
+                                <quarkus.oidc.credentials.secret>quarkus-faces-secret</quarkus.oidc.credentials.secret>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
                 </plugins>
             </build>
+        </profile>
+        <profile>
+            <!-- Keep this profile LAST (see quarkus.profile below).
+                 mvn verify -Dnative [-Pbasic|-Poidc] : build a native executable and run the *IT tests against it.
+                 Add -Dquarkus.native.container-build=true if GraalVM/Mandrel is not installed locally. -->
+            <id>native</id>
+            <activation>
+                <property>
+                    <name>native</name>
+                </property>
+            </activation>
+            <properties>
+                <skipITs>false</skipITs>
+                <quarkus.native.enabled>true</quarkus.native.enabled>
+                <!-- Build the image with the mode profile only (prod, basic or oidc), not the "dev,..." used by
+                     quarkus:dev. Works because this profile is declared last, so its properties win. -->
+                <quarkus.profile>${app.profile}</quarkus.profile>
+            </properties>
         </profile>
     </profiles>
 </project>
