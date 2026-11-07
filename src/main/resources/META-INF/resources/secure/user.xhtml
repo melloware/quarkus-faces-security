@@ -1,0 +1,110 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces"
+                template="/WEB-INF/template.xhtml">
+
+    <ui:define name="title">My profile</ui:define>
+
+    <ui:define name="content">
+        <section class="content-width page-head">
+            <span class="hero-eyebrow"><i class="pi pi-lock"/> /secure/user.xhtml · any authenticated user</span>
+            <h1>Hello, #{securityService.displayName} 👋</h1>
+            <p>This page is protected by <code>quarkus.http.auth.permission.secure</code> (policy
+                <code>authenticated</code>). Everything below comes from the injected <code>SecurityIdentity</code>.</p>
+        </section>
+
+        <section class="content-width">
+            <div class="two-col">
+                <!-- ===== PROFILE CARD ===== -->
+                <div class="panel-card profile-card">
+                    <div class="profile-banner mode-#{securityService.mode}"/>
+                    <div class="profile-body">
+                        <p:avatar label="#{securityService.initials}" shape="circle" size="xlarge"
+                                  styleClass="profile-avatar #{securityService.admin ? 'avatar-admin' : 'avatar-user'}"/>
+                        <h2 id="profile-name">#{securityService.displayName}</h2>
+                        <div class="profile-username">@<span id="profile-username">#{securityService.username}</span></div>
+                        <ui:fragment rendered="#{not empty securityService.email}">
+                            <div class="profile-email"><i class="pi pi-envelope"/> #{securityService.email}</div>
+                        </ui:fragment>
+                        <div id="profile-roles" class="profile-roles">
+                            <ui:repeat value="#{securityService.roles}" var="r">
+                                <p:tag value="#{r}" styleClass="role-tag"
+                                       severity="#{r eq 'admin' ? 'danger' : (securityService.isAppRole(r) ? 'info' : 'secondary')}"/>
+                            </ui:repeat>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== AUTH DETAILS ===== -->
+                <div class="panel-card">
+                    <h2 class="section-title"><i class="pi pi-info-circle"/> How you signed in</h2>
+                    <dl class="detail-list">
+                        <dt>Mode</dt>
+                        <dd><span class="app-mode-badge mode-#{securityService.mode}"><i class="#{securityService.modeIcon}"/> #{securityService.modeLabel}</span></dd>
+                        <dt>Mechanism</dt>
+                        <dd>#{securityService.mechanism}</dd>
+                        <ui:fragment rendered="#{securityService.basic}">
+                            <dt>Credential store</dt>
+                            <dd>Embedded users (<code>quarkus.security.users.embedded.*</code>)</dd>
+                            <dt>Session</dt>
+                            <dd>Encrypted, HttpOnly <code>quarkus-credential</code> cookie</dd>
+                        </ui:fragment>
+                        <ui:fragment rendered="#{securityService.oidc}">
+                            <dt>Issuer</dt>
+                            <dd><code>#{securityService.issuer}</code></dd>
+                            <dt>ID token expires</dt>
+                            <dd>
+                                <h:outputText value="#{securityService.tokenExpiry}">
+                                    <f:convertDateTime pattern="yyyy-MM-dd HH:mm:ss z" timeZone="#{securityService.timeZone}"/>
+                                </h:outputText>
+                            </dd>
+                            <dt>Session</dt>
+                            <dd>Split, encrypted <code>q_session*</code> cookies (auto refresh)</dd>
+                        </ui:fragment>
+                        <dt>Servlet API</dt>
+                        <dd>
+                            <code>getUserPrincipal()</code> =
+                            <strong id="servlet-principal">#{request.userPrincipal.name}</strong>,
+                            <code>isUserInRole("admin")</code> =
+                            <strong id="servlet-admin">#{request.isUserInRole('admin')}</strong>
+                            <div class="text-sm mt-1"><a href="#{request.contextPath}/secure/whoami" target="_blank">/secure/whoami</a> (plain servlet)</div>
+                        </dd>
+                        <dt>Admin?</dt>
+                        <dd>
+                            <p:tag value="#{securityService.admin ? 'Yes' : 'No'}"
+                                   severity="#{securityService.admin ? 'success' : 'secondary'}" rounded="true"/>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== IN-PAGE ROLE CHECK ===== -->
+        <section class="content-width">
+            <ui:fragment rendered="#{securityService.hasRole('admin')}">
+                <div id="admin-panel" class="panel-card admin-panel">
+                    <div class="admin-panel-icon"><i class="pi pi-star-fill"/></div>
+                    <div class="flex-1">
+                        <h2>Admin tools</h2>
+                        <p>You see this because you have the <strong>admin</strong> role. This panel is hidden with
+                            <code>rendered="\#{securityService.hasRole('admin')}"</code>, an in-page role check.</p>
+                    </div>
+                    <p:linkButton value="Open admin console" icon="pi pi-arrow-right" iconPos="right"
+                                  outcome="/secure/admin" styleClass="ui-button-danger"/>
+                </div>
+            </ui:fragment>
+            <ui:fragment rendered="#{not securityService.hasRole('admin')}">
+                <div id="no-admin-panel" class="panel-card muted-panel">
+                    <i class="pi pi-eye-slash"/>
+                    <div>
+                        <strong>An admin-only panel is hidden here.</strong>
+                        You don't have the <code>admin</code> role. Try opening the
+                        <h:link outcome="/secure/admin" value="admin console"/> anyway to see a path-level denial.
+                    </div>
+                </div>
+            </ui:fragment>
+        </section>
+    </ui:define>
+</ui:composition>

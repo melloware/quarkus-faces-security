@@ -1,0 +1,56 @@
+{
+  "realm": "quarkus-faces",
+  "displayName": "Quarkus Faces Security Demo",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "roles": {
+    "realm": [
+      { "name": "admin", "description": "Administrators of the demo" },
+      { "name": "user", "description": "Regular users of the demo" }
+    ]
+  },
+  "users": [
+    {
+      "username": "alice",
+      "enabled": true,
+      "email": "alice@example.com",
+      "emailVerified": true,
+      "firstName": "Alice",
+      "lastName": "Admin",
+      "credentials": [ { "type": "password", "value": "alice", "temporary": false } ],
+      "realmRoles": [ "admin", "user" ]
+    },
+    {
+      "username": "bob",
+      "enabled": true,
+      "email": "bob@example.com",
+      "emailVerified": true,
+      "firstName": "Bob",
+      "lastName": "User",
+      "credentials": [ { "type": "password", "value": "bob", "temporary": false } ],
+      "realmRoles": [ "user" ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "quarkus-faces",
+      "name": "Quarkus Faces Security Demo",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "quarkus-faces-secret",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [ "*" ],
+      "webOrigins": [ "+" ],
+      "attributes": {
+        "post.logout.redirect.uris": "*"
+      }
+    }
+  ]
+}
