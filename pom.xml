@@ -13,7 +13,8 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>21</maven.compiler.release>
-        <myfaces.version>4.1.4</myfaces.version>
+        <!-- 4.1.5-SNAPSHOT: needs MYFACES-4779 (EL on List.of() / request.userPrincipal in native) -->
+        <myfaces.version>4.1.5-SNAPSHOT</myfaces.version>
         <omnifaces-quarkus.version>5.5.6</omnifaces-quarkus.version>
         <primefaces-quarkus.version>4.16.1</primefaces-quarkus.version>
         <quarkus.version>3.40.1.1</quarkus.version>
@@ -29,6 +30,20 @@
         <app.profile>prod</app.profile>
         <playwright-quarkus.version>2.4.0</playwright-quarkus.version>
     </properties>
+
+    <repositories>
+        <!-- MyFaces 4.1.5-SNAPSHOT (MYFACES-4779). Remove together with the snapshot version once 4.1.5 is released. -->
+        <repository>
+            <id>apache-snapshots</id>
+            <url>https://repository.apache.org/content/repositories/snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <dependencyManagement>
         <dependencies>

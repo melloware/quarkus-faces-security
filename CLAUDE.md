@@ -43,7 +43,7 @@ On Windows, stopping `mvn quarkus:dev` from a background shell can leave the for
 ## Conventions
 
 - Classes bound in EL must be POJOs with getters/setters, not records (EL can't read derived `isX()` on records).
-- Native image and EL: a non-CDI POJO read from EL needs `@RegisterForReflection` (see `DemoUser`). Don't call methods on JDK or container objects from XHTML (`#{list.size()}`, `#{request.userPrincipal.name}`). They work in JVM mode but return 500 in native. Expose a getter on a bean instead (`DemoUsers.userCount`, `SecurityService.servletPrincipal`).
+- Native image and EL: a non-CDI POJO read from EL needs `@RegisterForReflection` (see `DemoUser`). `#{list.size()}` on JDK immutable collections and `#{request.userPrincipal.name}` work in native only from MyFaces 4.1.5 (MYFACES-4779). The native ITs on `/secure/admin.xhtml` and `/secure/user.xhtml` cover them.
 - The `native` Maven profile must stay **last** in the pom. It overrides `quarkus.profile` with `${app.profile}` so the image is built with `form`/`basic`/`oidc`/`prod`, not `dev,...`, which would bake in Development stage.
 - Browser tests use Quarkiverse `quarkus-playwright` (`@WithPlaywright`, `@InjectPlaywright BrowserContext`, relative URLs), not HtmlUnit. HTTP-only checks use RestAssured.
 - UI: one shared template `WEB-INF/template.xhtml`. Styling is in `resources/demo/css/app.css` and is built on PrimeFaces theme CSS variables so `saga-blue` (light) and `arya-blue` (dark, from `primefaces-themes`) both work. PrimeFlex comes from mvnpm (`library="_static"`). `ThemeBean.toggle()` must post-redirect-get, or the POST response renders with the old theme.

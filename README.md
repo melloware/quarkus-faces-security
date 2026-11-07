@@ -334,8 +334,9 @@ The `*IT` tests start Keycloak Dev Services from the test JVM, which doesn't rea
 So the `oidc` Maven profile passes the realm and client settings to failsafe as system properties. Keep them in sync.
 
 Native gotchas this demo runs into (and the native tests guard against):
-- EL reads properties by reflection. A plain POJO such as `DemoUser` needs `@RegisterForReflection`. Method calls on JDK or
-  container objects (`#{list.size()}`, `#{request.userPrincipal.name}`) fail in native, so expose a bean getter instead.
+- EL reads properties by reflection. A plain POJO such as `DemoUser` needs `@RegisterForReflection`.
+- `#{list.size()}` on a `List.of(...)` and `#{request.userPrincipal.name}` need MyFaces 4.1.5 or later
+  ([MYFACES-4779](https://issues.apache.org/jira/browse/MYFACES-4779)). With 4.1.4 they return 500 in native.
 - The image must be built with the mode's config profile (`form`/`basic`/`oidc`), not the `dev,form` that `quarkus:dev` uses.
   The `native` Maven profile takes care of this.
 

@@ -1,7 +1,6 @@
 package com.melloware.faces.security;
 
 import java.io.IOException;
-import java.security.Principal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
@@ -178,21 +177,6 @@ public class SecurityService {
 
     public boolean isAdmin() {
         return hasRole("admin");
-    }
-
-    // ---------------------------------------------------------------- Servlet API view (HttpServletRequest)
-    // Done here instead of #{request.userPrincipal.name} in the page: EL would reflect on the container's
-    // Principal implementation, which is not registered for reflection in a native image.
-
-    /** {@code HttpServletRequest#getUserPrincipal()} name, or null when anonymous. */
-    public String getServletPrincipal() {
-        Principal principal = FacesContext.getCurrentInstance().getExternalContext().getUserPrincipal();
-        return principal == null ? null : principal.getName();
-    }
-
-    /** {@code HttpServletRequest#isUserInRole(role)}. */
-    public boolean isServletUserInRole(String role) {
-        return FacesContext.getCurrentInstance().getExternalContext().isUserInRole(role);
     }
 
     // ---------------------------------------------------------------- OIDC token details (null otherwise)
