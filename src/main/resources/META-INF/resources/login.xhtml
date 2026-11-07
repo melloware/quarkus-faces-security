@@ -30,6 +30,14 @@
                 <p>Sign in to the Quarkus Faces Security demo</p>
             </div>
 
+            <p:tabView id="loginTabs" styleClass="login-tabs" activeIndex="#{param.tab eq 'faces' ? 1 : 0}">
+
+            <!-- ========== TAB 1: plain HTML form -> /j_security_check ========== -->
+            <p:tab id="plainTab" title="Plain form">
+            <p class="login-tab-intro">
+                A plain HTML <code>&lt;form&gt;</code> posting to <code>/j_security_check</code>. Quarkus does everything.
+            </p>
+
             <ui:fragment rendered="#{param.error eq 'true'}">
                 <div id="login-error" class="app-banner banner-error compact">
                     <i class="pi pi-times-circle"/>
@@ -60,6 +68,39 @@
                     <span class="ui-button-text ui-c">Sign in</span>
                 </button>
             </form>
+            </p:tab>
+
+            <!-- ========== TAB 2: programmatic login from a Faces action ========== -->
+            <p:tab id="facesTab" title="Faces action">
+            <p class="login-tab-intro">
+                A real <code>h:form</code> calling <code>\#{loginController.login}</code>, which authenticates with
+                <code>IdentityProviderManager</code> and issues the same login cookie.
+            </p>
+            <h:form id="progForm" styleClass="login-form" prependId="true">
+                <p:messages id="progMessages" closable="false" showDetail="true" styleClass="login-messages"/>
+
+                <p:outputLabel for="@next" value="Username"/>
+                <span class="ui-input-icon-left login-field">
+                    <i class="pi pi-user"/>
+                    <p:inputText id="username" value="#{loginController.username}" required="true"
+                                 requiredMessage="Username is required" placeholder="alice or bob"
+                                 autocomplete="username"/>
+                </span>
+
+                <p:outputLabel for="@next" value="Password"/>
+                <span class="ui-input-icon-left login-field">
+                    <i class="pi pi-lock"/>
+                    <p:password id="password" value="#{loginController.password}" required="true"
+                                requiredMessage="Password is required" placeholder="Same as the username"
+                                autocomplete="current-password"/>
+                </span>
+
+                <p:commandButton id="progSubmit" value="Sign in with Faces" icon="pi pi-sign-in"
+                                 action="#{loginController.login}" process="@form" update="@form"
+                                 styleClass="login-submit"/>
+            </h:form>
+            </p:tab>
+            </p:tabView>
 
             <div class="login-hint">
                 <div class="login-hint-title"><i class="pi pi-info-circle"/> Demo users</div>
@@ -89,6 +130,7 @@
                 <ul>
                     <li><i class="pi pi-check"/> Users &amp; roles in <code>application-basic.properties</code></li>
                     <li><i class="pi pi-check"/> Paths protected by <code>quarkus.http.auth.permission.*</code></li>
+                    <li><i class="pi pi-check"/> Two ways in: plain form or a Faces action (programmatic)</li>
                     <li><i class="pi pi-check"/> Server-side logout</li>
                 </ul>
             </div>
