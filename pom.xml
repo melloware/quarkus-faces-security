@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.melloware</groupId>
+    <artifactId>quarkus-faces-security</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>quarkus</packaging>
+    <name>quarkus-faces-security</name>
+    <description>Quarkus + Jakarta Faces demo of form login (embedded users) and OIDC (Keycloak) security</description>
+    <url>https://github.com/melloware/quarkus-faces-security</url>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>21</maven.compiler.release>
+        <myfaces.version>4.1.4</myfaces.version>
+        <omnifaces-quarkus.version>5.5.6</omnifaces-quarkus.version>
+        <primefaces-quarkus.version>4.16.1</primefaces-quarkus.version>
+        <quarkus.version>3.40.1.1</quarkus.version>
+        <surefire.version>3.5.4</surefire.version>
+        <build-helper.version>3.6.1</build-helper.version>
+        <!-- JUnit 5 tag(s) to run; each security profile switches this to its own tag -->
+        <test.groups>unsecured</test.groups>
+        <playwright-quarkus.version>2.4.0</playwright-quarkus.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.quarkus.platform</groupId>
+                <artifactId>quarkus-bom</artifactId>
+                <version>${quarkus.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- Faces -->
+        <dependency>
+            <groupId>org.apache.myfaces.core.extensions.quarkus</groupId>
+            <artifactId>myfaces-quarkus</artifactId>
+            <version>${myfaces.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkiverse.primefaces</groupId>
+            <artifactId>quarkus-primefaces</artifactId>
+            <version>${primefaces-quarkus.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkiverse.omnifaces</groupId>
+            <artifactId>quarkus-omnifaces</artifactId>
+            <version>${omnifaces-quarkus.version}</version>
+        </dependency>
+        <dependency>
+            <!-- extra themes: arya-blue is used for dark mode (saga-blue ships with PrimeFaces) -->
+            <groupId>org.primefaces</groupId>
+            <artifactId>primefaces-themes</artifactId>
+            <version>16.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mvnpm</groupId>
+            <artifactId>primeflex</artifactId>
+            <version>4.0.0</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!--
+          Security core only (SecurityIdentity, HTTP permissions). The actual mechanism is added
+          by a Maven profile, so each mode only carries the JARs it needs:
+            -Pbasic -> quarkus-elytron-security-properties-file
+            -Poidc  -> quarkus-oidc (+ quarkus-jackson) and the extra src/main/oidc sources
+        -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-security</artifactId>
+        </dependency>
+
+        <!-- Test -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkiverse.playwright</groupId>
+            <artifactId>quarkus-playwright</artifactId>
+            <version>${playwright-quarkus.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-maven-plugin</artifactId>
+                <version>${quarkus.version}</version>
+                <extensions>true</extensions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${surefire.version}</version>
+                <configuration>
+                    <!-- Only run the tests for the active mode: unsecured | basic | oidc -->
+                    <groups>${test.groups}</groups>
+                    <systemPropertyVariables>
+                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <!-- mvn -Pbasic : Faces login page (form auth) backed by embedded users -->
+            <!--   mvn -Pbasic verify : run only the form login tests                    -->
+            <id>basic</id>
+            <properties>
+                <quarkus.profile>dev,basic</quarkus.profile>
+                <test.groups>basic</test.groups>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-elytron-security-properties-file</artifactId>
+                </dependency>
+            </dependencies>
+            <build>
+                <defaultGoal>clean quarkus:dev</defaultGoal>
+            </build>
+        </profile>
+        <profile>
+            <!-- mvn -Poidc : OIDC authorization code flow against Keycloak Dev Services (needs Docker) -->
+            <!--   mvn -Poidc verify : run only the OIDC tests                                         -->
+            <id>oidc</id>
+            <properties>
+                <quarkus.profile>dev,oidc</quarkus.profile>
+                <test.groups>oidc</test.groups>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-oidc</artifactId>
+                </dependency>
+                <dependency>
+                    <!-- OIDC parses Keycloak's JSON metadata via Vert.x, which needs Jackson on the classpath -->
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-jackson</artifactId>
+                </dependency>
+            </dependencies>
+            <build>
+                <defaultGoal>clean compile quarkus:dev</defaultGoal>
+                <plugins>
+                    <plugin>
+                        <!-- Code that touches OIDC APIs (JsonWebToken) lives in src/main/oidc/java
+                             and is only compiled when this profile is active -->
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>${build-helper.version}</version>
+                        <executions>
+                            <execution>
+                                <id>add-oidc-sources</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>add-source</goal>
+                                </goals>
+                                <configuration>
+                                    <sources>
+                                        <source>src/main/oidc/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

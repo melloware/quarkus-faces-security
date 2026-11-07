@@ -1,0 +1,174 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces"
+                template="/WEB-INF/template.xhtml">
+
+    <ui:define name="title">Home</ui:define>
+
+    <ui:define name="content">
+
+        <!-- ============ HERO ============ -->
+        <section class="hero">
+            <div class="hero-text">
+                <span class="hero-eyebrow"><i class="pi pi-shield"/> Jakarta Faces on Quarkus</span>
+                <h1>One app. Same pages. <span class="text-gradient">Two ways to secure it.</span></h1>
+                <p>
+                    This demo runs the exact same PrimeFaces pages, users and roles behind a
+                    <strong>Faces login page</strong> (Quarkus form authentication) or behind
+                    <strong>OpenID Connect</strong> with Keycloak. You pick the mode with a Maven profile.
+                </p>
+                <div class="hero-actions">
+                    <p:linkButton id="tryUser" value="Open the user page" icon="pi pi-user" outcome="/secure/user"
+                                  disabled="#{not securityService.secured}" styleClass="ui-button-raised"/>
+                    <p:linkButton id="tryAdmin" value="Open the admin console" icon="pi pi-cog" outcome="/secure/admin"
+                                  disabled="#{not securityService.secured}"
+                                  styleClass="ui-button-outlined"/>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="hero-shield mode-#{securityService.mode}">
+                    <i class="#{securityService.modeIcon}"/>
+                </div>
+                <div class="hero-visual-label">Active mode</div>
+                <div id="active-mode" class="hero-visual-mode">#{securityService.modeLabel}</div>
+            </div>
+        </section>
+
+        <!-- ============ STATUS MESSAGES ============ -->
+        <div class="content-width">
+            <ui:fragment rendered="#{not securityService.secured}">
+                <div id="unsecured-banner" class="app-banner banner-warn">
+                    <i class="pi pi-exclamation-triangle"/>
+                    <div>
+                        <strong>No security profile selected.</strong>
+                        Only this public page is available. Restart with
+                        <code>mvn -Pbasic</code> or <code>mvn -Poidc</code> to unlock the secure pages.
+                    </div>
+                </div>
+            </ui:fragment>
+            <ui:fragment rendered="#{not securityService.secured and param.denied eq 'true'}">
+                <div id="denied-banner" class="app-banner banner-error">
+                    <i class="pi pi-ban"/>
+                    <div>
+                        <strong>That page is secure.</strong>
+                        Secure pages are unavailable because no security profile is selected.
+                    </div>
+                </div>
+            </ui:fragment>
+            <ui:fragment rendered="#{param.logout eq 'true' and not securityService.loggedIn}">
+                <div id="logout-banner" class="app-banner banner-info">
+                    <i class="pi pi-check-circle"/>
+                    <div><strong>You have been signed out.</strong> Come back any time.</div>
+                </div>
+            </ui:fragment>
+            <ui:fragment rendered="#{securityService.loggedIn}">
+                <div id="welcome-banner" class="app-banner banner-success">
+                    <i class="pi pi-verified"/>
+                    <div>
+                        Signed in as <strong>#{securityService.displayName}</strong>
+                        via #{securityService.modeLabel}.
+                    </div>
+                </div>
+            </ui:fragment>
+        </div>
+
+        <!-- ============ MODE CARDS ============ -->
+        <section class="content-width">
+            <h2 class="section-title">Pick a mode</h2>
+            <div class="mode-grid">
+                <div class="mode-card #{securityService.mode eq 'none' ? 'is-active' : ''}">
+                    <div class="mode-card-head">
+                        <span class="mode-card-icon mode-none"><i class="pi pi-lock-open"/></span>
+                        <ui:fragment rendered="#{securityService.mode eq 'none'}">
+                            <p:tag value="Active" severity="warning" rounded="true"/>
+                        </ui:fragment>
+                    </div>
+                    <h3>Unsecured</h3>
+                    <code class="cmd">mvn quarkus:dev</code>
+                    <p>No authentication at all. Secure pages are blocked and redirected here, so nothing leaks by accident.</p>
+                </div>
+                <div class="mode-card #{securityService.mode eq 'basic' ? 'is-active' : ''}">
+                    <div class="mode-card-head">
+                        <span class="mode-card-icon mode-basic"><i class="pi pi-id-card"/></span>
+                        <ui:fragment rendered="#{securityService.mode eq 'basic'}">
+                            <p:tag value="Active" severity="info" rounded="true"/>
+                        </ui:fragment>
+                    </div>
+                    <h3>Form login</h3>
+                    <code class="cmd">mvn -Pbasic</code>
+                    <p>A PrimeFaces login page posting to <code>j_security_check</code>, users and roles embedded in
+                        <code>application-basic.properties</code>, logout clears the encrypted cookie.</p>
+                </div>
+                <div class="mode-card #{securityService.mode eq 'oidc' ? 'is-active' : ''}">
+                    <div class="mode-card-head">
+                        <span class="mode-card-icon mode-oidc"><i class="pi pi-key"/></span>
+                        <ui:fragment rendered="#{securityService.mode eq 'oidc'}">
+                            <p:tag value="Active" severity="success" rounded="true"/>
+                        </ui:fragment>
+                    </div>
+                    <h3>OIDC (Keycloak)</h3>
+                    <code class="cmd">mvn -Poidc</code>
+                    <p>Keycloak started by Quarkus Dev Services (Docker), same users imported from a realm file,
+                        single logout through Keycloak.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ USERS + PAGES ============ -->
+        <section class="content-width">
+            <div class="two-col">
+                <div class="panel-card">
+                    <h2 class="section-title"><i class="pi pi-users"/> Demo users</h2>
+                    <div class="user-list">
+                        <ui:repeat value="#{demoUsers.users}" var="u">
+                            <div class="user-row">
+                                <p:avatar label="#{u.username.substring(0,1).toUpperCase()}" shape="circle" size="large"
+                                          styleClass="#{u.admin ? 'avatar-admin' : 'avatar-user'}"/>
+                                <div class="user-row-text">
+                                    <div class="user-row-name">#{u.name}</div>
+                                    <div class="user-row-cred">
+                                        <i class="pi pi-user"/> <code>#{u.username}</code>
+                                        <i class="pi pi-key ml-2"/> <code>#{u.password}</code>
+                                    </div>
+                                    <div class="user-row-desc">#{u.description}</div>
+                                </div>
+                                <div class="user-row-roles">
+                                    <ui:repeat value="#{u.roles}" var="r">
+                                        <p:tag value="#{r}" severity="#{r eq 'admin' ? 'danger' : 'info'}"/>
+                                    </ui:repeat>
+                                </div>
+                            </div>
+                        </ui:repeat>
+                    </div>
+                </div>
+                <div class="panel-card">
+                    <h2 class="section-title"><i class="pi pi-sitemap"/> Pages</h2>
+                    <ul class="page-list">
+                        <li>
+                            <span class="page-path">/index.xhtml</span>
+                            <p:tag value="public" severity="secondary"/>
+                            <span class="page-desc">This page. Always available.</span>
+                        </li>
+                        <li>
+                            <span class="page-path">/secure/user.xhtml</span>
+                            <p:tag value="authenticated" severity="info"/>
+                            <span class="page-desc">Your profile, roles and an admin-only panel.</span>
+                        </li>
+                        <li>
+                            <span class="page-path">/secure/admin.xhtml</span>
+                            <p:tag value="role: admin" severity="danger"/>
+                            <span class="page-desc">Admin console. bob gets a friendly 403.</span>
+                        </li>
+                        <li>
+                            <span class="page-path">/login.xhtml</span>
+                            <p:tag value="form mode" severity="secondary"/>
+                            <span class="page-desc">Faces login page used by <code>-Pbasic</code>.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </ui:define>
+</ui:composition>

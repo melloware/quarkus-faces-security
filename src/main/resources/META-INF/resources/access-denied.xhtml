@@ -1,0 +1,40 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces"
+                template="/WEB-INF/template.xhtml">
+
+    <ui:define name="title">Access denied</ui:define>
+
+    <ui:define name="content">
+        <section class="content-width">
+            <div class="denied-card">
+                <div class="denied-icon"><i class="pi pi-lock"/></div>
+                <div class="denied-code">403</div>
+                <h1 id="denied-title">Access denied</h1>
+                <p>
+                    <ui:fragment rendered="#{securityService.loggedIn}">
+                        You're signed in as <strong>#{securityService.username}</strong>, but this page needs a role
+                        you don't have.
+                    </ui:fragment>
+                    <ui:fragment rendered="#{not securityService.loggedIn}">
+                        You don't have permission to open that page.
+                    </ui:fragment>
+                </p>
+                <p class="text-color-secondary">
+                    Quarkus rejected the request in its HTTP layer
+                    (<code>quarkus.http.auth.permission.*</code>), and <code>SecurityRoutes</code> turned the
+                    raw 403 into this page.
+                </p>
+                <div class="flex gap-2 justify-content-center flex-wrap">
+                    <p:linkButton value="Back to home" icon="pi pi-home" outcome="/index"/>
+                    <ui:fragment rendered="#{securityService.loggedIn}">
+                        <p:linkButton value="My profile" icon="pi pi-user" outcome="/secure/user"
+                                      styleClass="ui-button-outlined"/>
+                    </ui:fragment>
+                </div>
+            </div>
+        </section>
+    </ui:define>
+</ui:composition>

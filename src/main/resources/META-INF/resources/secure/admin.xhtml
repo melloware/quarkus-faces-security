@@ -1,0 +1,92 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+                xmlns:h="jakarta.faces.html"
+                xmlns:f="jakarta.faces.core"
+                xmlns:ui="jakarta.faces.facelets"
+                xmlns:p="primefaces"
+                template="/WEB-INF/template.xhtml">
+
+    <ui:define name="title">Admin console</ui:define>
+
+    <ui:define name="content">
+        <section class="content-width page-head">
+            <span class="hero-eyebrow danger"><i class="pi pi-shield"/> /secure/admin.xhtml · role: admin</span>
+            <h1 id="admin-title">Admin console</h1>
+            <p>Only users with the <strong>admin</strong> role get here. The check happens in Quarkus' HTTP layer
+                (<code>quarkus.http.auth.permission.admin</code> with a <code>roles-allowed=admin</code> policy)
+                before Faces even runs.</p>
+        </section>
+
+        <!-- ===== STATS ===== -->
+        <section class="content-width">
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <span class="stat-icon bg-blue"><i class="pi pi-users"/></span>
+                    <div>
+                        <div class="stat-value">#{demoUsers.users.size()}</div>
+                        <div class="stat-label">Demo users</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-icon bg-pink"><i class="pi pi-tags"/></span>
+                    <div>
+                        <div class="stat-value">2</div>
+                        <div class="stat-label">App roles</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-icon bg-green"><i class="#{securityService.modeIcon}"/></span>
+                    <div>
+                        <div class="stat-value small">#{securityService.modeLabel}</div>
+                        <div class="stat-label">Security mode</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-icon bg-orange"><i class="pi pi-user"/></span>
+                    <div>
+                        <div class="stat-value small">#{securityService.username}</div>
+                        <div class="stat-label">Signed in as</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== USERS TABLE ===== -->
+        <section class="content-width">
+            <div class="panel-card">
+                <h2 class="section-title"><i class="pi pi-table"/> Users &amp; access</h2>
+                <p:dataTable id="usersTable" value="#{demoUsers.users}" var="u" styleClass="users-table"
+                             stripedRows="true" size="small">
+                    <p:column headerText="User">
+                        <div class="flex align-items-center gap-3">
+                            <p:avatar label="#{u.username.substring(0,1).toUpperCase()}" shape="circle"
+                                      styleClass="#{u.admin ? 'avatar-admin' : 'avatar-user'}"/>
+                            <div>
+                                <div class="font-semibold">#{u.name}</div>
+                                <div class="text-color-secondary text-sm">#{u.username}</div>
+                            </div>
+                        </div>
+                    </p:column>
+                    <p:column headerText="Roles">
+                        <ui:repeat value="#{u.roles}" var="r">
+                            <p:tag value="#{r}" severity="#{r eq 'admin' ? 'danger' : 'info'}" styleClass="mr-1"/>
+                        </ui:repeat>
+                    </p:column>
+                    <p:column headerText="Home">
+                        <i class="pi pi-check-circle text-green-500"/>
+                    </p:column>
+                    <p:column headerText="User page">
+                        <i class="pi pi-check-circle text-green-500"/>
+                    </p:column>
+                    <p:column headerText="Admin console">
+                        <i class="pi #{u.admin ? 'pi-check-circle text-green-500' : 'pi-times-circle text-red-500'}"/>
+                    </p:column>
+                    <p:column headerText="Where defined">
+                        <span class="text-sm">
+                            #{securityService.oidc ? 'quarkus-faces-realm.json' : 'application-basic.properties'}
+                        </span>
+                    </p:column>
+                </p:dataTable>
+            </div>
+        </section>
+    </ui:define>
+</ui:composition>

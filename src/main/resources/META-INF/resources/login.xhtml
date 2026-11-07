@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:f="jakarta.faces.core"
+      xmlns:ui="jakarta.faces.facelets"
+      xmlns:p="primefaces"
+      lang="en">
+<!--
+  Faces login page for the "basic" profile (Quarkus form authentication).
+
+  Quarkus has no programmatic request.login(), so instead of a JSF action this page uses a
+  PLAIN HTML <form> that posts j_username / j_password straight to /j_security_check.
+  Quarkus validates the credentials, sets an encrypted "quarkus-credential" cookie and redirects
+  to the page you originally asked for (or quarkus.http.auth.form.landing-page).
+  On failure it redirects to quarkus.http.auth.form.error-page (this page with ?error=true).
+-->
+<h:head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Sign in · Quarkus Faces Security</title>
+    <link rel="icon" type="image/svg+xml" href="#{resource['demo:images/shield.svg']}"/>
+    <h:outputStylesheet library="_static" name="primeflex/4.0.0/primeflex.min.css"/>
+    <h:outputStylesheet library="demo" name="css/app.css"/>
+</h:head>
+<h:body styleClass="login-body #{themeBean.dark ? 'theme-dark' : 'theme-light'}">
+    <div class="login-shell">
+        <div class="login-card">
+            <div class="login-brand">
+                <span class="app-brand-icon large"><i class="pi pi-shield"/></span>
+                <h1>Welcome back</h1>
+                <p>Sign in to the Quarkus Faces Security demo</p>
+            </div>
+
+            <ui:fragment rendered="#{param.error eq 'true'}">
+                <div id="login-error" class="app-banner banner-error compact">
+                    <i class="pi pi-times-circle"/>
+                    <div><strong>Invalid username or password.</strong> Please try again.</div>
+                </div>
+            </ui:fragment>
+
+            <form id="login-form" method="post" action="#{request.contextPath}/j_security_check" class="login-form">
+                <label for="j_username">Username</label>
+                <span class="ui-input-icon-left login-field">
+                    <i class="pi pi-user"/>
+                    <input id="j_username" name="j_username" type="text" autocomplete="username"
+                           autofocus="autofocus" required="required" placeholder="alice or bob"
+                           class="ui-inputfield ui-inputtext ui-widget ui-state-default ui-corner-all"/>
+                </span>
+
+                <label for="j_password">Password</label>
+                <span class="ui-input-icon-left login-field">
+                    <i class="pi pi-lock"/>
+                    <input id="j_password" name="j_password" type="password" autocomplete="current-password"
+                           required="required" placeholder="Same as the username"
+                           class="ui-inputfield ui-inputtext ui-widget ui-state-default ui-corner-all"/>
+                </span>
+
+                <button id="login-submit" type="submit"
+                        class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-icon-left login-submit">
+                    <span class="ui-button-icon-left ui-icon ui-c pi pi-sign-in"/>
+                    <span class="ui-button-text ui-c">Sign in</span>
+                </button>
+            </form>
+
+            <div class="login-hint">
+                <div class="login-hint-title"><i class="pi pi-info-circle"/> Demo users</div>
+                <ui:repeat value="#{demoUsers.users}" var="u">
+                    <div class="login-hint-row">
+                        <code>#{u.username} / #{u.password}</code>
+                        <span>
+                            <ui:repeat value="#{u.roles}" var="r">
+                                <p:tag value="#{r}" severity="#{r eq 'admin' ? 'danger' : 'info'}"/>
+                            </ui:repeat>
+                        </span>
+                    </div>
+                </ui:repeat>
+            </div>
+
+            <div class="login-footer">
+                <p:linkButton value="Back to home" icon="pi pi-arrow-left" outcome="/index"
+                              styleClass="ui-button-flat ui-button-secondary"/>
+            </div>
+        </div>
+        <div class="login-aside">
+            <div class="login-aside-inner">
+                <i class="pi pi-id-card login-aside-icon"/>
+                <h2>Form authentication</h2>
+                <p>This page is a real Faces view. The form posts to <code>/j_security_check</code>, and Quarkus
+                    keeps you signed in with an encrypted, HttpOnly cookie, so no HTTP session is needed.</p>
+                <ul>
+                    <li><i class="pi pi-check"/> Users &amp; roles in <code>application-basic.properties</code></li>
+                    <li><i class="pi pi-check"/> Paths protected by <code>quarkus.http.auth.permission.*</code></li>
+                    <li><i class="pi pi-check"/> Server-side logout</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</h:body>
+</html>

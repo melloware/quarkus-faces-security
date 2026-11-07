@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="jakarta.faces.html"
+      xmlns:f="jakarta.faces.core"
+      xmlns:ui="jakarta.faces.facelets"
+      xmlns:p="primefaces"
+      lang="en">
+<h:head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title><ui:insert name="title">Quarkus Faces Security</ui:insert> · Quarkus Faces Security</title>
+    <link rel="icon" type="image/svg+xml" href="#{resource['demo:images/shield.svg']}"/>
+    <h:outputStylesheet library="_static" name="primeflex/4.0.0/primeflex.min.css"/>
+    <h:outputStylesheet library="demo" name="css/app.css"/>
+</h:head>
+<h:body styleClass="#{themeBean.dark ? 'theme-dark' : 'theme-light'}">
+
+    <!-- ===================== TOP BAR ===================== -->
+    <header class="app-topbar">
+        <h:form id="topbar" styleClass="app-topbar-inner">
+            <h:link outcome="/index" styleClass="app-brand">
+                <span class="app-brand-icon"><i class="pi pi-shield"/></span>
+                <span class="app-brand-text">
+                    <span class="app-brand-title">Quarkus Faces</span>
+                    <span class="app-brand-sub">Security Demo</span>
+                </span>
+            </h:link>
+
+            <span id="mode-badge" class="app-mode-badge mode-#{securityService.mode}">
+                <i class="#{securityService.modeIcon}"/>
+                <span>#{securityService.modeLabel}</span>
+            </span>
+
+            <nav class="app-nav">
+                <h:link outcome="/index" styleClass="app-nav-link #{view.viewId eq '/index.xhtml' ? 'active' : ''}">
+                    <i class="pi pi-home"/><span>Home</span>
+                </h:link>
+                <h:link outcome="/secure/user" disabled="#{not securityService.secured}"
+                        styleClass="app-nav-link #{view.viewId eq '/secure/user.xhtml' ? 'active' : ''}">
+                    <i class="pi pi-user"/><span>User</span>
+                </h:link>
+                <h:link outcome="/secure/admin" disabled="#{not securityService.secured}"
+                        styleClass="app-nav-link #{view.viewId eq '/secure/admin.xhtml' ? 'active' : ''}">
+                    <i class="pi pi-cog"/><span>Admin</span>
+                </h:link>
+            </nav>
+
+            <div class="app-topbar-actions">
+                <p:commandButton id="themeToggle" action="#{themeBean.toggle}" ajax="false"
+                                 icon="#{themeBean.dark ? 'pi pi-sun' : 'pi pi-moon'}"
+                                 styleClass="rounded-button ui-button-flat ui-button-plain"
+                                 title="Toggle dark mode"/>
+
+                <ui:fragment rendered="#{securityService.loggedIn}">
+                    <div class="app-user-chip">
+                        <p:avatar label="#{securityService.initials}" shape="circle"
+                                  styleClass="#{securityService.admin ? 'avatar-admin' : 'avatar-user'}"/>
+                        <span class="app-user-name" id="current-user">#{securityService.username}</span>
+                    </div>
+                    <p:commandButton id="logout" value="Logout" icon="pi pi-sign-out"
+                                     action="#{securityService.logout}" ajax="false"
+                                     styleClass="app-logout ui-button-outlined ui-button-secondary"/>
+                </ui:fragment>
+                <ui:fragment rendered="#{securityService.secured and not securityService.loggedIn}">
+                    <p:linkButton id="login" value="Login" icon="pi pi-sign-in" outcome="/secure/user"/>
+                </ui:fragment>
+            </div>
+        </h:form>
+    </header>
+
+    <!-- ===================== CONTENT ===================== -->
+    <main class="app-main">
+        <ui:insert name="content"/>
+    </main>
+
+    <footer class="app-footer">
+        <span>Secured by: <strong>#{securityService.modeLabel}</strong></span>
+        <span class="app-footer-sep">·</span>
+        <span>Quarkus · MyFaces · PrimeFaces · OmniFaces</span>
+        <span class="app-footer-sep">·</span>
+        <a href="https://github.com/melloware/quarkus-faces/issues/409" target="_blank" rel="noopener">Why this demo exists</a>
+    </footer>
+</h:body>
+</html>
