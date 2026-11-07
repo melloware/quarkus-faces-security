@@ -42,7 +42,9 @@ If you type a secure URL such as `/secure/user.xhtml` directly, you're redirecte
 ### 2. Form login: `mvn -Pbasic`
 
 1. Click **Login** or **Open the user page**. Quarkus redirects you to `/login.xhtml`.
-2. Sign in as `alice` / `alice` (admin) or `bob` / `bob`.
+2. Sign in as `alice` / `alice` (admin) or `bob` / `bob`, using either tab:
+   - **Plain form** posts straight to `/j_security_check`.
+   - **Faces action** is a programmatic login from a Faces action method (see [Programmatic login](#programmatic-login-from-a-faces-action)).
 3. Quarkus sends you back to the page you asked for.
 4. Try the **Admin** console as each user. Bob gets a friendly 403 page.
 5. **Logout** clears the login cookie and returns you home.
@@ -176,6 +178,55 @@ quarkus.http.auth.session.encryption-key=change-me-...   # use a real secret in 
 
 You stay logged in through an encrypted cookie, not the HTTP session, so it also works across a cluster.
 
+### Programmatic login from a Faces action
+
+People often want the login to be a **Faces action method** instead of a plain form
+([quarkus-faces#409](https://github.com/melloware/quarkus-faces/issues/409), [quarkus#27389](https://github.com/quarkusio/quarkus/issues/27389)).
+That lets them use PrimeFaces components and validation, `p:messages`, ajax, and their own checks before the login (captcha,
+account lockout, auditing). Quarkus has no servlet `request.login()`. The workaround in #409 has the server POST to its own
+`/j_security_check` with an `HttpClient` and copy the `Set-Cookie` header back. It's fragile: it breaks with proxies, context
+paths and TLS, it depends on Undertow internals, and it doesn't URL-encode the password.
+
+The **Faces action** tab on the login page uses `LoginController` instead, which does in-process what `j_security_check` does:
+
+```java
+@Inject IdentityProviderManager identityProviderManager;
+@Inject CurrentVertxRequest currentVertxRequest;
+
+public void login() throws IOException {
+    // 1. Check the credentials with the same identity providers form auth uses (here: embedded users)
+    SecurityIdentity identity = identityProviderManager.authenticateBlocking(
+            new UsernamePasswordAuthenticationRequest(username, new PasswordCredential(password.toCharArray())));
+    //    -> AuthenticationFailedException on bad credentials: add a FacesMessage and stay on the page
+
+    // 2. Issue the SAME encrypted quarkus-credential cookie, built from the same quarkus.http.auth.form.*
+    //    and quarkus.http.auth.session.encryption-key settings
+    RoutingContext rc = currentVertxRequest.getCurrent();
+    loginManager(http, form).save(identity, rc, null, rc.request().isSSL());
+
+    // 3. Redirect to the page originally asked for (quarkus-redirect-location cookie) or the landing page
+    external.redirect(contextPath + redirectTarget(rc, form));
+}
+```
+
+```xml
+<h:form id="progForm">
+    <p:messages id="progMessages"/>
+    <p:inputText id="username" value="#{loginController.username}" required="true"/>
+    <p:password  id="password" value="#{loginController.password}" required="true"/>
+    <p:commandButton value="Sign in with Faces" action="#{loginController.login}" process="@form" update="@form"/>
+</h:form>
+```
+
+The cookie is the same one `j_security_check` creates, so everything after the login works unchanged: path permissions,
+`SecurityIdentity`, `getUserPrincipal()`, and logout.
+
+> **Caveat:** `PersistentLoginManager` is a public class in a Quarkus `runtime` package, not a documented API.
+> `IdentityProviderManager` is the supported part. Re-run the tests when you upgrade Quarkus; `BasicModeProgrammaticLoginTest`
+> covers this flow end to end. Programmatic login requires `quarkus.http.auth.session.encryption-key` to be set.
+
+![Programmatic login with a Faces message](docs/images/login-programmatic.png)
+
 ### OIDC notes
 
 - Keycloak puts realm roles in the **access** token, so `quarkus.oidc.roles.source=accesstoken`.
@@ -207,6 +258,7 @@ tests use the default profile).
 | `UnsecuredModeTest` | `mvn verify` | warning banner; `/secure/**` redirects home with an explanation |
 | `BasicModeTest` | `-Pbasic` | RestAssured: redirect to login, `j_security_check` cookie, role-based content, 403 page, bad password, **`getUserPrincipal()` / `isUserInRole()`** |
 | `BasicModeBrowserTest` | `-Pbasic` | [Quarkus Playwright](https://docs.quarkiverse.io/quarkus-playwright/dev/): full login, admin access, bob denied, logout |
+| `BasicModeProgrammaticLoginTest` | `-Pbasic` | Playwright: Faces-action login returns to the original page, landing page, `getUserPrincipal()`, wrong password and required-field messages, logout |
 | `OidcModeTest` | `-Poidc` | redirect to Keycloak's authorize endpoint |
 | `OidcModeBrowserTest` | `-Poidc` | Playwright drives the Keycloak login form, checks roles, **`getUserPrincipal()` / `isUserInRole()`**, then single logout |
 
@@ -216,7 +268,8 @@ The OIDC tests **fail** (they're not skipped) if Docker isn't available. Playwri
 
 1. Copy the three properties files and the `basic` / `oidc` Maven profiles (dependencies and, for OIDC, the extra source folder).
 2. Put protected views under `/secure/` (or change `quarkus.http.auth.permission.*.paths`).
-3. Copy `login.xhtml`, keeping the plain `<form action="j_security_check">` with `j_username` / `j_password`.
+3. Copy `login.xhtml`. Either keep the plain `<form action="j_security_check">` with `j_username` / `j_password`, or use
+   the Faces-action version with `LoginController` for a programmatic login.
 4. Copy `SecurityService` and have your pages use only `#{securityService...}`.
 5. Optionally copy `SecurityRoutes` for friendly 403 and unsecured-mode handling.
 
@@ -229,6 +282,7 @@ src/main/java/com/melloware/faces/security/
   WhoAmIServlet.java       /secure/whoami - plain Servlet API getUserPrincipal()/isUserInRole()
   SecurityRoutes.java      Vert.x routes: unsecured-mode guard + friendly 403
 src/main/oidc/java/...     OidcTokenClaims - compiled only by -Poidc
+  LoginController.java     programmatic login from a Faces action (IdentityProviderManager + form-auth cookie)
   ThemeBean.java           light/dark toggle (saga-blue / arya-blue)
   DemoUser(s).java         display data for the users table
 src/main/resources/
