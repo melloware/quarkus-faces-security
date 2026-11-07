@@ -22,4 +22,9 @@ public class DemoUsers {
     public List<DemoUser> getUsers() {
         return users;
     }
+
+    /** Use this instead of {@code #{demoUsers.users.size()}}: in a native image EL can't call methods on JDK List classes. */
+    public int getUserCount() {
+        return users.size();
+    }
 }

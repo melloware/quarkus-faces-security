@@ -4,9 +4,13 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 /**
  * A demo user, for display only. Plain POJO with getters and setters so Faces EL can bind to it.
+ * Registered for reflection because EL reads its properties reflectively, which a native image only allows for registered classes.
  */
+@RegisterForReflection
 public class DemoUser implements Serializable {
 
     private static final long serialVersionUID = 1L;

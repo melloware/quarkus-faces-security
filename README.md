@@ -264,6 +264,33 @@ tests use the default profile).
 
 The OIDC tests **fail** (they're not skipped) if Docker isn't available. Playwright downloads its browser on the first run.
 
+### Native mode
+
+Each test class has an `*IT` subclass (`@QuarkusIntegrationTest`). Failsafe runs these against the native executable when
+the `native` profile is active (`-Dnative`). They're skipped in a normal build.
+
+```bash
+mvn verify -Dnative -Dnative.surefire.skip            # unsecured, native
+mvn -Pbasic verify -Dnative -Dnative.surefire.skip    # form login, native
+mvn -Poidc verify -Dnative -Dnative.surefire.skip     # OIDC, native - needs Docker
+# no local GraalVM/Mandrel? build inside a container (Linux only, since the ITs then run a Linux binary):
+#   ... -Dquarkus.native.container-build=true
+```
+
+The `*IT` tests start Keycloak Dev Services from the test JVM, which doesn't read `application-oidc.properties`.
+So the `oidc` Maven profile passes the realm and client settings to failsafe as system properties. Keep them in sync.
+
+Native gotchas this demo runs into (and the native tests guard against):
+- EL reads properties by reflection. A plain POJO such as `DemoUser` needs `@RegisterForReflection`. Method calls on JDK or
+  container objects (`#{list.size()}`, `#{request.userPrincipal.name}`) fail in native, so expose a bean getter instead.
+- The image must be built with the mode's config profile (`basic`/`oidc`), not the `dev,basic` that `quarkus:dev` uses.
+  The `native` Maven profile takes care of this.
+
+### CI
+
+`.github/workflows/build.yml` runs on every pull request and every push to `main`. For each mode it runs the JVM tests
+on Ubuntu (unsecured and basic also run on Windows) and builds a native executable with GraalVM to run the `*IT` tests.
+
 ## Use the pattern in your own app
 
 1. Copy the three properties files and the `basic` / `oidc` Maven profiles (dependencies and, for OIDC, the extra source folder).
