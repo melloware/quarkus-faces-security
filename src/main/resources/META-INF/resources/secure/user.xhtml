@@ -45,11 +45,17 @@
                         <dd><span class="app-mode-badge mode-#{securityService.mode}"><i class="#{securityService.modeIcon}"/> #{securityService.modeLabel}</span></dd>
                         <dt>Mechanism</dt>
                         <dd>#{securityService.mechanism}</dd>
-                        <ui:fragment rendered="#{securityService.basic}">
+                        <ui:fragment rendered="#{securityService.form}">
                             <dt>Credential store</dt>
                             <dd>Embedded users (<code>quarkus.security.users.embedded.*</code>)</dd>
                             <dt>Session</dt>
                             <dd>Encrypted, HttpOnly <code>quarkus-credential</code> cookie</dd>
+                        </ui:fragment>
+                        <ui:fragment rendered="#{securityService.basic}">
+                            <dt>Credential store</dt>
+                            <dd>Embedded users (<code>quarkus.security.users.embedded.*</code>)</dd>
+                            <dt>Session</dt>
+                            <dd id="basic-session">None. The browser resends the <code>Authorization: Basic</code> header on every request</dd>
                         </ui:fragment>
                         <ui:fragment rendered="#{securityService.oidc}">
                             <dt>Issuer</dt>

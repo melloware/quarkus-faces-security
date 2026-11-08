@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -33,6 +34,7 @@ public class SecurityService {
     private static final Logger LOG = Logger.getLogger(SecurityService.class);
 
     public static final String MODE_NONE = "none";
+    public static final String MODE_FORM = "form";
     public static final String MODE_BASIC = "basic";
     public static final String MODE_OIDC = "oidc";
 
@@ -58,6 +60,10 @@ public class SecurityService {
         return !MODE_NONE.equals(mode);
     }
 
+    public boolean isForm() {
+        return MODE_FORM.equals(mode);
+    }
+
     public boolean isBasic() {
         return MODE_BASIC.equals(mode);
     }
@@ -68,7 +74,8 @@ public class SecurityService {
 
     public String getModeLabel() {
         return switch (mode) {
-            case MODE_BASIC -> "Form login";
+            case MODE_FORM -> "Form login";
+            case MODE_BASIC -> "Basic auth";
             case MODE_OIDC -> "OIDC (Keycloak)";
             default -> "Unsecured";
         };
@@ -77,7 +84,8 @@ public class SecurityService {
     /** PrimeFaces severity used for the mode badge. */
     public String getModeSeverity() {
         return switch (mode) {
-            case MODE_BASIC -> "info";
+            case MODE_FORM -> "info";
+            case MODE_BASIC -> "secondary";
             case MODE_OIDC -> "success";
             default -> "warning";
         };
@@ -85,7 +93,8 @@ public class SecurityService {
 
     public String getModeIcon() {
         return switch (mode) {
-            case MODE_BASIC -> "pi pi-id-card";
+            case MODE_FORM -> "pi pi-id-card";
+            case MODE_BASIC -> "pi pi-desktop";
             case MODE_OIDC -> "pi pi-key";
             default -> "pi pi-lock-open";
         };
@@ -94,9 +103,20 @@ public class SecurityService {
     /** Human readable description of how the user was authenticated. */
     public String getMechanism() {
         return switch (mode) {
-            case MODE_BASIC -> "Quarkus form authentication (j_security_check) + embedded users";
+            case MODE_FORM -> "Quarkus form authentication (j_security_check) + embedded users";
+            case MODE_BASIC -> "HTTP Basic authentication (browser dialog) + embedded users";
             case MODE_OIDC -> "OpenID Connect authorization code flow (Keycloak)";
             default -> "None";
+        };
+    }
+
+    /** File the demo users and roles are defined in for the active mode. */
+    public String getUserStore() {
+        return switch (mode) {
+            case MODE_FORM -> "application-form.properties";
+            case MODE_BASIC -> "application-basic.properties";
+            case MODE_OIDC -> "quarkus-faces-realm.json";
+            default -> "-";
         };
     }
 
@@ -197,7 +217,9 @@ public class SecurityService {
     /**
      * Logs the user out in whatever way the active mode requires.
      * <ul>
-     * <li><b>basic</b>: remove the encrypted form-auth cookie server side, then go home.</li>
+     * <li><b>form</b>: remove the encrypted form-auth cookie server side, then go home.</li>
+     * <li><b>basic</b>: Basic auth has no logout, so redirect to {@link BasicLogoutServlet}, which answers
+     * with a 401 so the browser forgets its cached credentials.</li>
      * <li><b>oidc</b>: redirect to the virtual {@code quarkus.oidc.logout.path}; Quarkus then
      * performs RP-initiated logout at Keycloak and returns to {@code post-logout-path}.</li>
      * </ul>
@@ -212,7 +234,14 @@ public class SecurityService {
             external.redirect(contextPath + oidcLogoutPath);
             return;
         }
-        if (isBasic() && isLoggedIn()) {
+        if (isBasic()) {
+            Map<String, Object> cookie = Map.of("path", contextPath + "/secure", "httpOnly", true, "maxAge", 60);
+            external.addResponseCookie(BasicLogoutServlet.PENDING_COOKIE, "true", cookie);
+            external.invalidateSession();
+            external.redirect(contextPath + BasicLogoutServlet.PATH);
+            return;
+        }
+        if (isForm() && isLoggedIn()) {
             FormAuthenticationMechanism.logout(identity);
         }
         external.invalidateSession();

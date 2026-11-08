@@ -82,7 +82,7 @@
                     </p:column>
                     <p:column headerText="Where defined">
                         <span class="text-sm">
-                            #{securityService.oidc ? 'quarkus-faces-realm.json' : 'application-basic.properties'}
+                            #{securityService.userStore}
                         </span>
                     </p:column>
                 </p:dataTable>

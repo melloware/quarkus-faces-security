@@ -14,7 +14,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * <p>
  * Proves that Quarkus propagates its {@code SecurityIdentity} into the servlet container, so
  * {@link HttpServletRequest#getUserPrincipal()} and {@link HttpServletRequest#isUserInRole(String)}
- * return the right values in BOTH the form login and OIDC modes. Lives under {@code /secure/}
+ * return the right values in the form login, Basic auth and OIDC modes. Lives under {@code /secure/}
  * so it requires authentication like every other secure page.
  */
 @WebServlet(urlPatterns = "/secure/whoami")

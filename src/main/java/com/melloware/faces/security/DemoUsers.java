@@ -7,7 +7,8 @@ import jakarta.inject.Named;
 
 /**
  * The demo users, for display only. The real definitions live in
- * application-basic.properties (basic) and quarkus-faces-realm.json (oidc).
+ * application-form.properties (form), application-basic.properties (basic) and
+ * quarkus-faces-realm.json (oidc).
  */
 @Named
 @ApplicationScoped

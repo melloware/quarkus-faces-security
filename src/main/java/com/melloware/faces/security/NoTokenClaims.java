@@ -3,7 +3,7 @@ package com.melloware.faces.security;
 import io.quarkus.arc.DefaultBean;
 import jakarta.enterprise.context.ApplicationScoped;
 
-/** Used in the unsecured and basic modes, where there is no token. Replaced by the OIDC bean when present. */
+/** Used in the unsecured, form and basic modes, where there is no token. Replaced by the OIDC bean when present. */
 @DefaultBean
 @ApplicationScoped
 public class NoTokenClaims implements TokenClaims {

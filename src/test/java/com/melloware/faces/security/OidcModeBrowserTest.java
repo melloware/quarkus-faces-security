@@ -20,7 +20,7 @@ import io.quarkus.test.junit.TestProfile;
 
 /**
  * Real-browser walkthrough of the OIDC profile ({@code mvn -Poidc}): Keycloak login page,
- * the same role-based content as the basic profile, and single logout through Keycloak.
+ * the same role-based content as the form profile, and single logout through Keycloak.
  * Needs Docker for Keycloak Dev Services.
  */
 @QuarkusTest

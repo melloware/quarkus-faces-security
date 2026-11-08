@@ -6,7 +6,7 @@
       xmlns:p="primefaces"
       lang="en">
 <!--
-  Faces login page for the "basic" profile (Quarkus form authentication).
+  Faces login page for the "form" profile (Quarkus form authentication).
 
   Quarkus has no programmatic request.login(), so instead of a JSF action this page uses a
   PLAIN HTML <form> that posts j_username / j_password straight to /j_security_check.
@@ -128,7 +128,7 @@
                 <p>This page is a real Faces view. The form posts to <code>/j_security_check</code>, and Quarkus
                     keeps you signed in with an encrypted, HttpOnly cookie, so no HTTP session is needed.</p>
                 <ul>
-                    <li><i class="pi pi-check"/> Users &amp; roles in <code>application-basic.properties</code></li>
+                    <li><i class="pi pi-check"/> Users &amp; roles in <code>application-form.properties</code></li>
                     <li><i class="pi pi-check"/> Paths protected by <code>quarkus.http.auth.permission.*</code></li>
                     <li><i class="pi pi-check"/> Two ways in: plain form or a Faces action (programmatic)</li>
                     <li><i class="pi pi-check"/> Server-side logout</li>
