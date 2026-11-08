@@ -13,11 +13,12 @@
         <section class="hero">
             <div class="hero-text">
                 <span class="hero-eyebrow"><i class="pi pi-shield"/> Jakarta Faces on Quarkus</span>
-                <h1>One app. Same pages. <span class="text-gradient">Two ways to secure it.</span></h1>
+                <h1>One app. Same pages. <span class="text-gradient">Three ways to secure it.</span></h1>
                 <p>
                     This demo runs the exact same PrimeFaces pages, users and roles behind a
-                    <strong>Faces login page</strong> (Quarkus form authentication) or behind
-                    <strong>OpenID Connect</strong> with Keycloak. You pick the mode with a Maven profile.
+                    <strong>Faces login page</strong> (Quarkus form authentication), the browser's own
+                    <strong>Basic Auth</strong> dialog, or <strong>OpenID Connect</strong> with Keycloak.
+                    You pick the mode with a Maven profile.
                 </p>
                 <div class="hero-actions">
                     <p:linkButton id="tryUser" value="Open the user page" icon="pi pi-user" outcome="/secure/user"
@@ -44,7 +45,7 @@
                     <div>
                         <strong>No security profile selected.</strong>
                         Only this public page is available. Restart with
-                        <code>mvn -Pbasic</code> or <code>mvn -Poidc</code> to unlock the secure pages.
+                        <code>mvn -Pform</code>, <code>mvn -Pbasic</code> or <code>mvn -Poidc</code> to unlock the secure pages.
                     </div>
                 </div>
             </ui:fragment>
@@ -89,17 +90,29 @@
                     <code class="cmd">mvn quarkus:dev</code>
                     <p>No authentication at all. Secure pages are blocked and redirected here, so nothing leaks by accident.</p>
                 </div>
-                <div class="mode-card #{securityService.mode eq 'basic' ? 'is-active' : ''}">
+                <div class="mode-card #{securityService.mode eq 'form' ? 'is-active' : ''}">
                     <div class="mode-card-head">
-                        <span class="mode-card-icon mode-basic"><i class="pi pi-id-card"/></span>
-                        <ui:fragment rendered="#{securityService.mode eq 'basic'}">
+                        <span class="mode-card-icon mode-form"><i class="pi pi-id-card"/></span>
+                        <ui:fragment rendered="#{securityService.mode eq 'form'}">
                             <p:tag value="Active" severity="info" rounded="true"/>
                         </ui:fragment>
                     </div>
                     <h3>Form login</h3>
-                    <code class="cmd">mvn -Pbasic</code>
+                    <code class="cmd">mvn -Pform</code>
                     <p>A PrimeFaces login page posting to <code>j_security_check</code>, users and roles embedded in
-                        <code>application-basic.properties</code>, logout clears the encrypted cookie.</p>
+                        <code>application-form.properties</code>, logout clears the encrypted cookie.</p>
+                </div>
+                <div class="mode-card #{securityService.mode eq 'basic' ? 'is-active' : ''}">
+                    <div class="mode-card-head">
+                        <span class="mode-card-icon mode-basic"><i class="pi pi-desktop"/></span>
+                        <ui:fragment rendered="#{securityService.mode eq 'basic'}">
+                            <p:tag value="Active" severity="secondary" rounded="true"/>
+                        </ui:fragment>
+                    </div>
+                    <h3>Basic auth</h3>
+                    <code class="cmd">mvn -Pbasic</code>
+                    <p>No login page: the browser shows its own username/password dialog (HTTP Basic). Same embedded
+                        users, in <code>application-basic.properties</code>. No cookie or session at all.</p>
                 </div>
                 <div class="mode-card #{securityService.mode eq 'oidc' ? 'is-active' : ''}">
                     <div class="mode-card-head">
@@ -164,7 +177,7 @@
                         <li>
                             <span class="page-path">/login.xhtml</span>
                             <p:tag value="form mode" severity="secondary"/>
-                            <span class="page-desc">Faces login page used by <code>-Pbasic</code>: plain form or programmatic Faces action.</span>
+                            <span class="page-desc">Faces login page used by <code>-Pform</code>: plain form or programmatic Faces action.</span>
                         </li>
                     </ul>
                 </div>

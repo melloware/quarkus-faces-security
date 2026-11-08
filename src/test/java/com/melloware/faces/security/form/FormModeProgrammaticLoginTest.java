@@ -1,4 +1,4 @@
-package com.melloware.faces.security;
+package com.melloware.faces.security.form;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -9,7 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import com.melloware.faces.security.profiles.BasicProfile;
+import com.melloware.faces.security.profiles.FormProfile;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 
@@ -20,13 +20,13 @@ import io.quarkus.test.junit.TestProfile;
 
 /**
  * Programmatic login from a Faces action ({@code LoginController#login}), the "Faces action" tab
- * of the login page in the form login profile ({@code mvn -Pbasic}).
+ * of the login page in the form login profile ({@code mvn -Pform}).
  */
 @QuarkusTest
-@Tag("basic")
-@TestProfile(BasicProfile.class)
+@Tag("form")
+@TestProfile(FormProfile.class)
 @WithPlaywright
-class BasicModeProgrammaticLoginTest {
+class FormModeProgrammaticLoginTest {
 
     private static final String USERNAME = "[id='loginTabs:progForm:username']";
     private static final String PASSWORD = "[id='loginTabs:progForm:password']";

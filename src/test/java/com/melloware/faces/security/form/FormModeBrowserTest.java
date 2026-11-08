@@ -1,4 +1,4 @@
-package com.melloware.faces.security;
+package com.melloware.faces.security.form;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
@@ -8,7 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import com.melloware.faces.security.profiles.BasicProfile;
+import com.melloware.faces.security.profiles.FormProfile;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 
@@ -18,14 +18,14 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 
 /**
- * Real-browser walkthrough of the form login profile ({@code mvn -Pbasic}):
+ * Real-browser walkthrough of the form login profile ({@code mvn -Pform}):
  * Faces login page, role-based content, path-level denial and logout.
  */
 @QuarkusTest
-@Tag("basic")
-@TestProfile(BasicProfile.class)
+@Tag("form")
+@TestProfile(FormProfile.class)
 @WithPlaywright
-class BasicModeBrowserTest {
+class FormModeBrowserTest {
 
     @InjectPlaywright
     BrowserContext context;

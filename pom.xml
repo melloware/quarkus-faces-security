@@ -7,7 +7,7 @@
     <version>1.0.0-SNAPSHOT</version>
     <packaging>quarkus</packaging>
     <name>quarkus-faces-security</name>
-    <description>Quarkus + Jakarta Faces demo of form login (embedded users) and OIDC (Keycloak) security</description>
+    <description>Quarkus + Jakarta Faces demo of form login, HTTP Basic auth (embedded users) and OIDC (Keycloak) security</description>
     <url>https://github.com/melloware/quarkus-faces-security</url>
 
     <properties>
@@ -25,7 +25,7 @@
         <skipITs>true</skipITs>
         <!-- -Dnative.surefire.skip : skip the JVM (@QuarkusTest) tests in a native build, as Quarkus extensions do -->
         <native.surefire.skip>false</native.surefire.skip>
-        <!-- Config profile for a native build (the security profiles switch it to basic / oidc) -->
+        <!-- Config profile for a native build (the security profiles switch it to form / basic / oidc) -->
         <app.profile>prod</app.profile>
         <playwright-quarkus.version>2.4.0</playwright-quarkus.version>
     </properties>
@@ -75,7 +75,8 @@
         <!--
           Security core only (SecurityIdentity, HTTP permissions). The actual mechanism is added
           by a Maven profile, so each mode only carries the JARs it needs:
-            -Pbasic -> quarkus-elytron-security-properties-file
+            -Pform  -> quarkus-elytron-security-properties-file (form login page)
+            -Pbasic -> quarkus-elytron-security-properties-file (HTTP Basic auth)
             -Poidc  -> quarkus-oidc (+ quarkus-jackson) and the extra src/main/oidc sources
         -->
         <dependency>
@@ -115,7 +116,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${surefire.version}</version>
                 <configuration>
-                    <!-- Only run the tests for the active mode: unsecured | basic | oidc -->
+                    <!-- Only run the tests for the active mode: unsecured | form | basic | oidc -->
                     <groups>${test.groups}</groups>
                     <skipTests>${native.surefire.skip}</skipTests>
                     <systemPropertyVariables>
@@ -150,8 +151,27 @@
 
     <profiles>
         <profile>
-            <!-- mvn -Pbasic : Faces login page (form auth) backed by embedded users -->
-            <!--   mvn -Pbasic verify : run only the form login tests                    -->
+            <!-- mvn -Pform : Faces login page (form auth) backed by embedded users -->
+            <!--   mvn -Pform verify : run only the form login tests                    -->
+            <id>form</id>
+            <properties>
+                <quarkus.profile>dev,form</quarkus.profile>
+                <test.groups>form</test.groups>
+                <app.profile>form</app.profile>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-elytron-security-properties-file</artifactId>
+                </dependency>
+            </dependencies>
+            <build>
+                <defaultGoal>clean quarkus:dev</defaultGoal>
+            </build>
+        </profile>
+        <profile>
+            <!-- mvn -Pbasic : HTTP Basic authentication (the browser's own login dialog), embedded users -->
+            <!--   mvn -Pbasic verify : run only the Basic auth tests                                     -->
             <id>basic</id>
             <properties>
                 <quarkus.profile>dev,basic</quarkus.profile>
@@ -232,7 +252,7 @@
         </profile>
         <profile>
             <!-- Keep this profile LAST (see quarkus.profile below).
-                 mvn verify -Dnative [-Pbasic|-Poidc] : build a native executable and run the *IT tests against it.
+                 mvn verify -Dnative [-Pform|-Pbasic|-Poidc] : build a native executable and run the *IT tests against it.
                  Add -Dquarkus.native.container-build=true if GraalVM/Mandrel is not installed locally. -->
             <id>native</id>
             <activation>
@@ -243,7 +263,7 @@
             <properties>
                 <skipITs>false</skipITs>
                 <quarkus.native.enabled>true</quarkus.native.enabled>
-                <!-- Build the image with the mode profile only (prod, basic or oidc), not the "dev,..." used by
+                <!-- Build the image with the mode profile only (prod, form, basic or oidc), not the "dev,..." used by
                      quarkus:dev. Works because this profile is declared last, so its properties win. -->
                 <quarkus.profile>${app.profile}</quarkus.profile>
             </properties>

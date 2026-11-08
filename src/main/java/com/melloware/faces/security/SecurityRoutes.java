@@ -26,7 +26,7 @@ public class SecurityRoutes {
     void init(@Observes Router router) {
         if (SecurityService.MODE_NONE.equals(mode)) {
             // Unsecured mode: never serve secure pages, explain why on the home page instead.
-            LOG.warn("No security profile selected: /secure/* is blocked. Run with -Pbasic or -Poidc.");
+            LOG.warn("No security profile selected: /secure/* is blocked. Run with -Pform, -Pbasic or -Poidc.");
             router.route("/secure/*").order(-1000).handler(rc -> rc.redirect("/index.xhtml?denied=true"));
         }
 

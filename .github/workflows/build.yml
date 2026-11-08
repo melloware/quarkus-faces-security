@@ -30,13 +30,15 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest ]
-        mode: [ unsecured, basic, oidc ]
+        mode: [ unsecured, form, basic, oidc ]
         include:
           - { mode: unsecured, profile: "" }
+          - { mode: form, profile: "-Pform" }
           - { mode: basic, profile: "-Pbasic" }
           - { mode: oidc, profile: "-Poidc" }
           # Windows runners have no Linux containers, so no Keycloak Dev Services there (oidc is Linux only)
           - { os: windows-latest, mode: unsecured, profile: "" }
+          - { os: windows-latest, mode: form, profile: "-Pform" }
           - { os: windows-latest, mode: basic, profile: "-Pbasic" }
     steps:
       - uses: actions/checkout@v5
@@ -68,6 +70,7 @@ jobs:
       matrix:
         include:
           - { mode: unsecured, profile: "" }
+          - { mode: form, profile: "-Pform" }
           - { mode: basic, profile: "-Pbasic" }
           - { mode: oidc, profile: "-Poidc" }
     steps:

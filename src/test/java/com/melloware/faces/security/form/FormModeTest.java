@@ -1,4 +1,4 @@
-package com.melloware.faces.security;
+package com.melloware.faces.security.form;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
@@ -9,18 +9,18 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import com.melloware.faces.security.profiles.BasicProfile;
+import com.melloware.faces.security.profiles.FormProfile;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 
 /**
- * HTTP-level checks for the form login profile ({@code mvn -Pbasic}).
+ * HTTP-level checks for the form login profile ({@code mvn -Pform}).
  */
 @QuarkusTest
-@Tag("basic")
-@TestProfile(BasicProfile.class)
-class BasicModeTest {
+@Tag("form")
+@TestProfile(FormProfile.class)
+class FormModeTest {
 
     private static final String COOKIE = "quarkus-credential";
 
