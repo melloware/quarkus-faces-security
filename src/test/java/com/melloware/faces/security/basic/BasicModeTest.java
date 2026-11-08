@@ -1,4 +1,4 @@
-package com.melloware.faces.security;
+package com.melloware.faces.security.basic;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.melloware.faces.security.profiles.BasicProfile;
+import com.melloware.faces.security.basic.BasicLogoutServlet;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;

@@ -1,4 +1,4 @@
-package com.melloware.faces.security;
+package com.melloware.faces.security.oidc;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;

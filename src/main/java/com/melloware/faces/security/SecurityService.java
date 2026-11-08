@@ -12,6 +12,8 @@ import java.util.TimeZone;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
+import com.melloware.faces.security.basic.BasicLogoutServlet;
+
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.vertx.http.runtime.security.FormAuthenticationMechanism;
 import jakarta.enterprise.context.RequestScoped;

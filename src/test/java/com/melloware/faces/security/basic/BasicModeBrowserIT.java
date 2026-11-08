@@ -1,4 +1,4 @@
-package com.melloware.faces.security;
+package com.melloware.faces.security.basic;
 
 import org.junit.jupiter.api.Tag;
 

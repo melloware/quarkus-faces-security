@@ -1,4 +1,4 @@
-package com.melloware.faces.security;
+package com.melloware.faces.security.oidc;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;

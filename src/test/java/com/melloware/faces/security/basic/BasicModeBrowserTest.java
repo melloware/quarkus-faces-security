@@ -1,4 +1,4 @@
-package com.melloware.faces.security;
+package com.melloware.faces.security.basic;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.melloware.faces.security.profiles.BasicProfile;
+import com.melloware.faces.security.basic.BasicLogoutServlet;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;

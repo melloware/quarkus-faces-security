@@ -1,4 +1,4 @@
-package com.melloware.faces.security;
+package com.melloware.faces.security.form;
 
 import java.io.IOException;
 import java.io.Serializable;

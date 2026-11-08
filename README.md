@@ -358,16 +358,21 @@ on Ubuntu (unsecured, form and basic also run on Windows) and builds a native ex
 ## Project layout
 
 ```
-src/main/java/com/melloware/faces/security/
+src/main/java/com/melloware/faces/security/        shared by every mode
   SecurityService.java     the only class that knows the active mode
   TokenClaims.java         claims abstraction (NoTokenClaims = default bean)
   WhoAmIServlet.java       /secure/whoami - plain Servlet API getUserPrincipal()/isUserInRole()
   SecurityRoutes.java      Vert.x routes: unsecured-mode guard + friendly 403
-  LoginController.java     programmatic login from a Faces action (IdentityProviderManager + form-auth cookie)
-  BasicLogoutServlet.java  /secure/basic-logout - makes the browser forget its Basic auth credentials
   ThemeBean.java           light/dark toggle (saga-blue / arya-blue)
   DemoUser(s).java         display data for the users table
-src/main/oidc/java/...     OidcTokenClaims - compiled only by -Poidc
+  form/LoginController.java      -Pform: programmatic login from a Faces action (IdentityProviderManager + form-auth cookie)
+  basic/BasicLogoutServlet.java  -Pbasic: /secure/basic-logout - makes the browser forget its Basic auth credentials
+src/main/oidc/java/com/melloware/faces/security/
+  oidc/OidcTokenClaims.java      -Poidc: token claims - this source folder is compiled only by -Poidc
+src/test/java/com/melloware/faces/security/
+  UnsecuredMode*.java      default build
+  form/, basic/, oidc/     each mode's tests (*Test + *IT)
+  profiles/                QuarkusTestProfile per mode
 src/main/resources/
   application*.properties  base + form + basic + oidc
   quarkus-faces-realm.json Keycloak realm for Dev Services

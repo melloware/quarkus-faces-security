@@ -1,9 +1,11 @@
-package com.melloware.faces.security;
+package com.melloware.faces.security.basic;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 
 import org.eclipse.microprofile.config.ConfigProvider;
+
+import com.melloware.faces.security.SecurityService;
 
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.Cookie;
