@@ -21,7 +21,7 @@
                     You pick the mode with a Maven profile.
                 </p>
                 <div class="hero-actions">
-                    <p:linkButton id="tryUser" value="Open the user page" icon="pi pi-user" outcome="/secure/user"
+                    <p:linkButton id="tryUser" value="Open the user page" icon="pi pi-user" href="#{securityService.loginUrl}"
                                   disabled="#{not securityService.secured}" styleClass="ui-button-raised"/>
                     <p:linkButton id="tryAdmin" value="Open the admin console" icon="pi pi-cog" outcome="/secure/admin"
                                   disabled="#{not securityService.secured}"

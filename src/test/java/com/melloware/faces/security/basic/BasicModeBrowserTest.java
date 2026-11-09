@@ -121,21 +121,15 @@ class BasicModeBrowserTest {
         page.navigate("/secure/user.xhtml");
         assertThat(page.locator("#current-user")).hasText("alice");
 
-        List<String> logoutCookies = new ArrayList<>();
-        page.onRequest(r -> {
-            if (r.url().contains(BasicLogoutServlet.PATH)) {
-                logoutCookies.add(String.valueOf(r.allHeaders().get("cookie")));
-            }
-        });
+        List<String> visited = new ArrayList<>();
+        page.onRequest(r -> visited.add(r.url()));
         page.locator("[id='topbar:logout']").click();
 
-        // Logout goes to BasicLogoutServlet with the one-time cookie, which answers the cached
-        // credentials with a 401 (see BasicModeTest) so a real browser forgets them and shows its
-        // dialog. Chromium handles that 401 internally and Playwright "types" the credentials
-        // again, so here alice is simply signed back in.
-        assertThat(page).hasURL(Pattern.compile(".*/secure/user\\.xhtml$"));
-        assertThat(page.locator("#current-user")).hasText("alice");
-        assertTrue(logoutCookies.stream().anyMatch(c -> c.contains(BasicLogoutServlet.PENDING_COOKIE)),
-                logoutCookies.toString());
+        // Logout passes through BasicLogoutServlet's page and lands home signed out. How the
+        // browser's own credential cache is cleared is covered by BasicModeRealBrowserTest:
+        // httpCredentials bypass that cache.
+        assertThat(page).hasURL(Pattern.compile(".*/index\\.xhtml\\?logout=true$"));
+        assertThat(page.locator("[id='topbar:login']")).isVisible();
+        assertTrue(visited.stream().anyMatch(u -> u.contains(BasicLogoutServlet.PATH)), visited.toString());
     }
 }
