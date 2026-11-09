@@ -55,7 +55,7 @@ If you type a secure URL such as `/secure/user.xhtml` directly, you're redirecte
 
 ### 3. Basic auth: `mvn -Pbasic`
 
-1. Click **Login** or **Open the user page**. There's no login page: Quarkus answers `401` with
+1. Click **Login** or **Open the user page** (both go to `/basic-login`). There's no login page: Quarkus answers `401` with
    `WWW-Authenticate: Basic realm="Quarkus Faces"`, and the **browser** asks for a username and password.
 2. Sign in as `alice` / `alice` or `bob` / `bob`. The browser then sends an `Authorization: Basic ...` header with every
    request. There's no cookie and no session.
@@ -162,7 +162,7 @@ It wraps the injected `SecurityIdentity` (username and roles), plus `TokenClaims
 | Mode | Logout |
 |---|---|
 | form | `FormAuthenticationMechanism.logout(identity)` removes the encrypted `quarkus-credential` cookie, then redirects to `/index.xhtml?logout=true` |
-| basic | sets a one-time cookie and redirects to `BasicLogoutServlet`, which answers with a `401` so the browser forgets its cached credentials (see [HTTP Basic auth](#http-basic-auth)) |
+| basic | redirects to `BasicLogoutServlet` (`/basic-logout`), whose page makes the browser forget its cached credentials without showing the login dialog (see [HTTP Basic auth](#http-basic-auth)) |
 | oidc | redirects to the virtual `quarkus.oidc.logout.path` (`/secure/logout`). Quarkus logs you out of Keycloak and returns to `post-logout-path` |
 
 ### The Servlet API sees the same user
@@ -255,8 +255,8 @@ quarkus.http.auth.realm=Quarkus Faces     # shown in some browsers' dialogs
 ```
 
 ```
-GET /secure/user.xhtml                      ->  401  WWW-Authenticate: basic realm="Quarkus Faces"
-GET /secure/user.xhtml                      ->  200  (the browser retries after the user fills in its dialog)
+GET /basic-login                            ->  401  WWW-Authenticate: basic realm="Quarkus Faces"
+GET /basic-login                            ->  302  /secure/user.xhtml  (the browser retries after the user fills in its dialog)
 Authorization: Basic YWxpY2U6YWxpY2U=
 ```
 
@@ -267,14 +267,19 @@ Things to know before you pick it:
 
 - **The password goes with every request**, only base64-encoded. Use HTTPS.
 - **You can't style the dialog**, add a "remember me", a captcha or a Faces message. Use form login for that.
-- **The browser decides when to send the credentials.** It resends them automatically only under the path it was
-  challenged on (here `/secure/`). Public pages such as the home page get no `Authorization` header, so they show you as
-  signed out. Click **Login** again and you're straight back in, with no dialog.
-- **There's no logout in the protocol.** The browser keeps the credentials until it is closed. The demo uses the usual
-  workaround: **Logout** sets a one-time cookie and redirects to `BasicLogoutServlet` (`/secure/basic-logout`), which
-  answers the cached credentials with a `401` and a new challenge. The browser treats them as rejected, forgets them
-  and shows its dialog again. Click **Cancel** and you land on the home page, signed out. If you type the credentials
-  in again instead, the cookie is gone, so you're simply signed back in.
+- **The browser decides when to send the credentials.** It resends them automatically only to URLs at or below the
+  *directory* of the URL that challenged it (RFC 7617, section 2.2); Firefox and Safari are strict about this. If the
+  challenge came from `/secure/user.xhtml`, the home page would get no `Authorization` header and show you as signed
+  out. That's why **Login** goes to `BasicLoginServlet` (`/basic-login`): it sits at the root, so the credentials
+  cover every page, and once you're in it just redirects to the user page. Opening a `/secure/...` URL directly while
+  signed out still limits the credentials to `/secure/`.
+- **There's no logout in the protocol.** The browser keeps the credentials until it is closed. Answering a page with
+  a `401` makes the browser forget them, but it also shows the login dialog again, and users read that as "logout
+  didn't work". Instead, **Logout** redirects to `BasicLogoutServlet` (`/basic-logout`). That page has a script that
+  sends an `XMLHttpRequest` with made-up credentials (`logout:...`) to `/basic-login`. The browser replaces its cached
+  credentials with them. The `401` that comes back goes to the script rather than to a dialog, because the script
+  supplied the credentials. The page then goes home, signed out. It needs JavaScript, and closing the browser is
+  still the only logout every browser guarantees.
 
 ### OIDC notes
 
@@ -309,8 +314,9 @@ its tag. Each test class also selects its configuration through a `QuarkusTestPr
 | `FormModeTest` | `-Pform` | RestAssured: redirect to login, `j_security_check` cookie, role-based content, 403 page, bad password, **`getUserPrincipal()` / `isUserInRole()`** |
 | `FormModeBrowserTest` | `-Pform` | [Quarkus Playwright](https://docs.quarkiverse.io/quarkus-playwright/dev/): full login, admin access, bob denied, logout |
 | `FormModeProgrammaticLoginTest` | `-Pform` | Playwright: Faces-action login returns to the original page, landing page, `getUserPrincipal()`, wrong password and required-field messages, logout |
-| `BasicModeTest` | `-Pbasic` | RestAssured: `401` + `WWW-Authenticate` challenge, no form login, role-based content, 403 page, bad password, **`getUserPrincipal()` / `isUserInRole()`**, logout `401` |
+| `BasicModeTest` | `-Pbasic` | RestAssured: `401` + `WWW-Authenticate` challenge, no form login, role-based content, 403 page, bad password, **`getUserPrincipal()` / `isUserInRole()`**, `/basic-login`, logout page |
 | `BasicModeBrowserTest` | `-Pbasic` | Playwright with `httpCredentials` (a headless browser can't type into the native dialog): challenge, admin access, bob denied, logout |
+| `BasicModeRealBrowserTest` | `-Pbasic` | Chromium and Firefox (plus WebKit on macOS) using the browser's **own** credential cache (`user:pass@` URLs): home page shows you signed in after Login, logout shows no dialog and really forgets the credentials |
 | `OidcModeTest` | `-Poidc` | redirect to Keycloak's authorize endpoint |
 | `OidcModeBrowserTest` | `-Poidc` | Playwright drives the Keycloak login form, checks roles, **`getUserPrincipal()` / `isUserInRole()`**, then single logout |
 
@@ -351,7 +357,8 @@ on Ubuntu (unsecured, form and basic also run on Windows) and builds a native ex
 2. Put protected views under `/secure/` (or change `quarkus.http.auth.permission.*.paths`).
 3. For form login, copy `login.xhtml`. Either keep the plain `<form action="j_security_check">` with `j_username` /
    `j_password`, or use the Faces-action version with `LoginController` for a programmatic login.
-   For Basic auth there's no page to copy; add `BasicLogoutServlet` if you want a logout button.
+   For Basic auth there's no page to copy; add `BasicLoginServlet` (and its permission) so signed-in users stay
+   signed in on public pages, and `BasicLogoutServlet` if you want a logout button.
 4. Copy `SecurityService` and have your pages use only `#{securityService...}`.
 5. Optionally copy `SecurityRoutes` for friendly 403 and unsecured-mode handling.
 
@@ -366,7 +373,8 @@ src/main/java/com/melloware/faces/security/        shared by every mode
   ThemeBean.java           light/dark toggle (saga-blue / arya-blue)
   DemoUser(s).java         display data for the users table
   form/LoginController.java      -Pform: programmatic login from a Faces action (IdentityProviderManager + form-auth cookie)
-  basic/BasicLogoutServlet.java  -Pbasic: /secure/basic-logout - makes the browser forget its Basic auth credentials
+  basic/BasicLoginServlet.java   -Pbasic: /basic-login - root-level challenge so the credentials cover every page
+  basic/BasicLogoutServlet.java  -Pbasic: /basic-logout - makes the browser forget its Basic auth credentials, no dialog
 src/main/oidc/java/com/melloware/faces/security/
   oidc/OidcTokenClaims.java      -Poidc: token claims - this source folder is compiled only by -Poidc
 src/test/java/com/melloware/faces/security/

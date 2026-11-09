@@ -6,12 +6,12 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.TimeZone;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
+import com.melloware.faces.security.basic.BasicLoginServlet;
 import com.melloware.faces.security.basic.BasicLogoutServlet;
 
 import io.quarkus.security.identity.SecurityIdentity;
@@ -122,6 +122,16 @@ public class SecurityService {
         };
     }
 
+    /**
+     * Where the topbar Login button points. Usually the user page, which makes the mechanism ask for
+     * credentials. Basic mode uses {@link BasicLoginServlet} instead, so the browser's credentials
+     * cover the whole app and not just {@code /secure/}.
+     */
+    public String getLoginUrl() {
+        String contextPath = FacesContext.getCurrentInstance().getExternalContext().getRequestContextPath();
+        return isBasic() ? BasicLoginServlet.loginUrl(contextPath) : contextPath + "/secure/user.xhtml";
+    }
+
     // ---------------------------------------------------------------- identity
 
     public boolean isLoggedIn() {
@@ -220,8 +230,8 @@ public class SecurityService {
      * Logs the user out in whatever way the active mode requires.
      * <ul>
      * <li><b>form</b>: remove the encrypted form-auth cookie server side, then go home.</li>
-     * <li><b>basic</b>: Basic auth has no logout, so redirect to {@link BasicLogoutServlet}, which answers
-     * with a 401 so the browser forgets its cached credentials.</li>
+     * <li><b>basic</b>: Basic auth has no logout, so redirect to {@link BasicLogoutServlet}, whose page
+     * makes the browser forget its cached credentials without showing the login dialog.</li>
      * <li><b>oidc</b>: redirect to the virtual {@code quarkus.oidc.logout.path}; Quarkus then
      * performs RP-initiated logout at Keycloak and returns to {@code post-logout-path}.</li>
      * </ul>
@@ -237,8 +247,6 @@ public class SecurityService {
             return;
         }
         if (isBasic()) {
-            Map<String, Object> cookie = Map.of("path", contextPath + "/secure", "httpOnly", true, "maxAge", 60);
-            external.addResponseCookie(BasicLogoutServlet.PENDING_COOKIE, "true", cookie);
             external.invalidateSession();
             external.redirect(contextPath + BasicLogoutServlet.PATH);
             return;

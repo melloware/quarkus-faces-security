@@ -61,7 +61,7 @@
                                      styleClass="app-logout ui-button-outlined ui-button-secondary"/>
                 </ui:fragment>
                 <ui:fragment rendered="#{securityService.secured and not securityService.loggedIn}">
-                    <p:linkButton id="login" value="Login" icon="pi pi-sign-in" outcome="/secure/user"/>
+                    <p:linkButton id="login" value="Login" icon="pi pi-sign-in" href="#{securityService.loginUrl}"/>
                 </ui:fragment>
             </div>
         </h:form>

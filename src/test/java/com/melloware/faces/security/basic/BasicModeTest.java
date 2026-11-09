@@ -130,34 +130,48 @@ class BasicModeTest {
                 .body(containsString("id=\"servlet-admin\">true<"));
     }
 
-    // ------------------------------------------------ logout
+    // ------------------------------------------------ login
 
     @Test
-    void logoutRejectsCachedCredentialsSoTheBrowserForgetsThem() {
-        given().auth().preemptive().basic("alice", "alice").redirects().follow(false)
-                .cookie(BasicLogoutServlet.PENDING_COOKIE, "true")
-                .when().get(BasicLogoutServlet.PATH)
-                .then().statusCode(401)
-                .header("WWW-Authenticate", equalToIgnoringCase(CHALLENGE))
-                .header("Set-Cookie", containsString(BasicLogoutServlet.PENDING_COOKIE + "="))
-                .header("Set-Cookie", containsString("Max-Age=0"))
-                // shown when the user cancels the browser dialog: sends them home
-                .body(containsString("/index.xhtml?logout=true"));
+    void loginButtonPointsAtTheRootLevelLoginPath() {
+        given().when().get("/index.xhtml")
+                .then().statusCode(200)
+                .body(containsString("href=\"" + BasicLoginServlet.PATH + "\""));
     }
 
     @Test
-    void reenteringCredentialsAfterLogoutSignsBackIn() {
-        // No pending-logout cookie: the user typed their credentials into the dialog again
+    void anonymousLoginPathIsChallenged() {
+        given().redirects().follow(false)
+                .when().get(BasicLoginServlet.PATH)
+                .then().statusCode(401)
+                .header("WWW-Authenticate", equalToIgnoringCase(CHALLENGE));
+    }
+
+    @Test
+    void signedInLoginPathGoesToUserPage() {
         given().auth().preemptive().basic("alice", "alice").redirects().follow(false)
-                .when().get(BasicLogoutServlet.PATH)
+                .when().get(BasicLoginServlet.PATH)
                 .then().statusCode(302)
                 .header("Location", endsWith("/secure/user.xhtml"));
     }
 
+    // ------------------------------------------------ logout
+
     @Test
-    void anonymousLogoutIsChallenged() {
+    void logoutPageIsPublicAndReplacesCredentialsFromScript() {
         given().redirects().follow(false)
                 .when().get(BasicLogoutServlet.PATH)
+                .then().statusCode(200)
+                .header("Cache-Control", "no-store")
+                .body(containsString("XMLHttpRequest"))
+                .body(containsString("'" + BasicLoginServlet.PATH + "', true, '" + BasicLogoutServlet.LOGOUT_USER + "'"))
+                .body(containsString("/index.xhtml?logout=true"));
+    }
+
+    @Test
+    void madeUpLogoutCredentialsAreRejected() {
+        given().auth().preemptive().basic(BasicLogoutServlet.LOGOUT_USER, "logout-123").redirects().follow(false)
+                .when().get(BasicLoginServlet.PATH)
                 .then().statusCode(401);
     }
 }

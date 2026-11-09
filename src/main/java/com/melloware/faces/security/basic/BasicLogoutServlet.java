@@ -8,7 +8,6 @@ import org.eclipse.microprofile.config.ConfigProvider;
 import com.melloware.faces.security.SecurityService;
 
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -17,71 +16,60 @@ import jakarta.servlet.http.HttpServletResponse;
  * "Logout" for HTTP Basic authentication ({@code mvn -Pbasic}).
  * <p>
  * Basic auth has no logout: the browser caches the username and password and resends them on every
- * request until it is closed. The usual workaround is to answer a request that carries those cached
- * credentials with a {@code 401} and a fresh {@code WWW-Authenticate} challenge. The browser then
- * treats the credentials as rejected, forgets them and shows its login dialog again. When the user
- * clicks <b>Cancel</b>, the browser renders the body of the 401, which sends them home.
- * <p>
- * {@link SecurityService#logout()} sets a one-time {@value #PENDING_COOKIE} cookie before
- * redirecting here, so only a real logout gets the 401. If the user types their credentials into the
- * dialog again instead of cancelling, the retried request has no cookie and they are simply signed
- * back in. Lives under {@code /secure/} so the browser sends its cached credentials here.
+ * request until it is closed. This public page makes it forget them <b>without</b> showing the login
+ * dialog again:
+ * <ol>
+ * <li>A script sends an {@code XMLHttpRequest} to the protected {@link BasicLoginServlet#PATH} with
+ * made-up credentials. Credentials passed to {@code XMLHttpRequest.open()} replace the ones the
+ * browser has cached for the realm, and because the script supplied them, the {@code 401} that comes
+ * back goes to the script instead of opening the browser's dialog.</li>
+ * <li>The script then goes to the home page, which is now requested without credentials.</li>
+ * </ol>
+ * The usual alternative, answering a page request with a {@code 401} + challenge, makes the browser
+ * show its dialog again, and users read that as "logout didn't work".
  */
 @WebServlet(urlPatterns = BasicLogoutServlet.PATH)
 public class BasicLogoutServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
 
-    public static final String PATH = "/secure/basic-logout";
-    public static final String PENDING_COOKIE = "demo-basic-logout";
+    public static final String PATH = "/basic-logout";
+
+    /** Username of the made-up credentials; never a real user. */
+    public static final String LOGOUT_USER = "logout";
+
+    static boolean isBasicMode() {
+        return SecurityService.MODE_BASIC.equals(ConfigProvider.getConfig()
+                .getOptionalValue("demo.security.mode", String.class).orElse(SecurityService.MODE_NONE));
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        String mode = ConfigProvider.getConfig().getOptionalValue("demo.security.mode", String.class)
-                .orElse(SecurityService.MODE_NONE);
-        if (!SecurityService.MODE_BASIC.equals(mode)) {
+        if (!isBasicMode()) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
 
         String contextPath = request.getContextPath();
-        if (!hasPendingCookie(request)) {
-            // Credentials were re-entered in the browser dialog: they are valid, so just carry on.
-            response.sendRedirect(contextPath + "/secure/user.xhtml");
-            return;
-        }
-
-        Cookie clear = new Cookie(PENDING_COOKIE, "");
-        clear.setPath(contextPath + "/secure");
-        clear.setMaxAge(0);
-        clear.setHttpOnly(true);
-        response.addCookie(clear);
-
-        String realm = ConfigProvider.getConfig().getOptionalValue("quarkus.http.auth.realm", String.class)
-                .orElse("Quarkus");
         String home = contextPath + "/index.xhtml?logout=true";
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setHeader("WWW-Authenticate", "Basic realm=\"" + realm + "\"");
+        String probe = BasicLoginServlet.loginUrl(contextPath);
         response.setHeader("Cache-Control", "no-store");
         response.setContentType("text/html;charset=UTF-8");
         try (PrintWriter out = response.getWriter()) {
             out.println("<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">");
-            out.println("<meta http-equiv=\"refresh\" content=\"0;url=" + home + "\">");
-            out.println("<title>Signed out</title></head><body id=\"basic-logout\">");
-            out.println("<p>You have been signed out. <a href=\"" + home + "\">Back to home</a></p>");
-            out.println("</body></html>");
+            out.println("<title>Signing out</title></head><body id=\"basic-logout\">");
+            out.println("<p>Signing out... <a href=\"" + home + "\">Back to home</a></p>");
+            out.println("<script>");
+            out.println("(function () {");
+            out.println("  var done = function () { window.location.replace('" + home + "'); };");
+            out.println("  try {");
+            out.println("    var xhr = new XMLHttpRequest();");
+            out.println("    xhr.open('GET', '" + probe + "', true, '" + LOGOUT_USER + "', 'logout-' + Date.now());");
+            out.println("    xhr.onloadend = done;");
+            out.println("    xhr.send();");
+            out.println("  } catch (e) { done(); }");
+            out.println("})();");
+            out.println("</script></body></html>");
         }
-    }
-
-    private static boolean hasPendingCookie(HttpServletRequest request) {
-        if (request.getCookies() == null) {
-            return false;
-        }
-        for (Cookie cookie : request.getCookies()) {
-            if (PENDING_COOKIE.equals(cookie.getName())) {
-                return true;
-            }
-        }
-        return false;
     }
 }
