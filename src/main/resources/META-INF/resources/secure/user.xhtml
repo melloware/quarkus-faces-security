@@ -72,9 +72,9 @@
                         <dt>Servlet API</dt>
                         <dd>
                             <code>getUserPrincipal()</code> =
-                            <strong id="servlet-principal">#{securityService.servletPrincipal}</strong>,
+                            <strong id="servlet-principal">#{request.userPrincipal.name}</strong>,
                             <code>isUserInRole("admin")</code> =
-                            <strong id="servlet-admin">#{securityService.isServletUserInRole('admin')}</strong>
+                            <strong id="servlet-admin">#{request.isUserInRole('admin')}</strong>
                             <div class="text-sm mt-1"><a href="#{request.contextPath}/secure/whoami" target="_blank">/secure/whoami</a> (plain servlet)</div>
                         </dd>
                         <dt>Admin?</dt>
